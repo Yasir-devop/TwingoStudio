@@ -851,8 +851,52 @@ body.loaded #canvas-skeleton { display: none; }
 .set-thumb.dark-ts { border: 1.5px solid #555; }
 .set-thumb.light-ts { border: 1.5px solid #ddd; }
 </style>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
+  authDomain: "twingostudio-cc351.firebaseapp.com",
+  projectId: "twingostudio-cc351",
+  storageBucket: "twingostudio-cc351.firebasestorage.app",
+  messagingSenderId: "236093689838",
+  appId: "1:236093689838:web:b502546fdf61b1cc6288ff"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const firestore = getFirestore(app);
+
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  document.body.style.visibility = 'visible';
+  // Konumları Firebase'den yükle
+  try {
+    const snap = await getDoc(doc(firestore, 'presets', 'shared'));
+    if (snap.exists()) {
+      const data = snap.data();
+      if (data.groups) {
+        S.groups = data.groups;
+        savePresets(); // localStorage'a da yaz
+        renderPresets();
+      }
+    }
+  } catch(e) { console.log('Preset yükleme:', e); }
+});
+
+// Konumları Firebase'e kaydet
+window._savePresetsToFirebase = async (groups) => {
+  try {
+    await setDoc(doc(firestore, 'presets', 'shared'), { groups, updatedAt: Date.now() });
+  } catch(e) { console.log('Firebase preset kaydetme hatası:', e); }
+};
+</script>
 </head>
-<body>
+<body style="visibility:hidden;">
 
 <header>
   <div class="header-logo">Mockup <span style="color:#e05c2a;">Studio</span></div>
@@ -1151,7 +1195,11 @@ const S = {
   })(),
 };
 
-function savePresets() { localStorage.setItem('mp_groups_v1', JSON.stringify(S.groups)); }
+function savePresets() {
+  localStorage.setItem('mp_groups_v1', JSON.stringify(S.groups));
+  // Firebase'e de kaydet
+  if (window._savePresetsToFirebase) window._savePresetsToFirebase(S.groups);
+}
 function saveSetGroups() { localStorage.setItem('twingo_set_groups', JSON.stringify(S.setGroups)); }
 
 // ── EMPTY STATE ARROWS ───────────────────────────────────

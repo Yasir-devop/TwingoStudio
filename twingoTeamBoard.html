@@ -348,8 +348,74 @@ body.dark .stats-bar { background: #1a1a1a; border-color: #2a2a2a; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 2px; }
 </style>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
+  authDomain: "twingostudio-cc351.firebaseapp.com",
+  projectId: "twingostudio-cc351",
+  storageBucket: "twingostudio-cc351.firebasestorage.app",
+  messagingSenderId: "236093689838",
+  appId: "1:236093689838:web:b502546fdf61b1cc6288ff"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let currentUser = null;
+let unsubscribeTasks = null;
+
+// Auth kontrolü
+onAuthStateChanged(auth, user => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  currentUser = user;
+  document.body.style.visibility = 'visible';
+  // Kullanıcı adını header'a yaz
+  const nameEl = document.getElementById('user-display-name');
+  if (nameEl) nameEl.textContent = user.displayName || user.email;
+  // Görevleri yükle
+  loadTasksFromFirebase();
+});
+
+// Firestore'dan görevleri gerçek zamanlı dinle
+function loadTasksFromFirebase() {
+  if (unsubscribeTasks) unsubscribeTasks();
+  const q = query(collection(db, 'tasks'), where('userId', '==', currentUser.uid));
+  unsubscribeTasks = onSnapshot(q, snapshot => {
+    tasks = [];
+    snapshot.forEach(d => tasks.push(d.data()));
+    tasks.sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+    clearSkeletons();
+    render();
+  });
+}
+
+// Firestore'a kaydet
+window._saveTask = async (task) => {
+  if (!currentUser) return;
+  task.userId = currentUser.uid;
+  await setDoc(doc(db, 'tasks', task.id), task);
+};
+
+// Firestore'dan sil
+window._deleteTask = async (taskId) => {
+  if (!currentUser) return;
+  await deleteDoc(doc(db, 'tasks', taskId));
+};
+
+window.fbSignOut = () => {
+  import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js')
+    .then(({getAuth, signOut}) => signOut(getAuth()).then(() => window.location.href = 'login.html'));
+};
+</script>
 </head>
-<body>
+<body style="visibility:hidden;">
 
 <header>
   <div class="header-logo">Team <span style="color:#e05c2a;">Board</span></div>
@@ -359,6 +425,8 @@ body.dark .stats-bar { background: #1a1a1a; border-color: #2a2a2a; }
     <button onclick="openUsersModal()" id="users-btn" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--gray-200);color:var(--gray-700);background:var(--gray-50);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
       👥 Kullanıcılar <span id="users-badge" style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;display:none;">0</span>
     </button>
+    <span id="user-display-name" style="font-size:11px;color:var(--gray-400);"></span>
+    <button onclick="window.fbSignOut()" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--gray-200);color:var(--gray-500);background:var(--gray-50);cursor:pointer;font-family:inherit;">Çıkış</button>
     <a href="index.html" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--gray-200);color:var(--gray-500);text-decoration:none;background:var(--gray-50);">← Ana Sayfa</a>
   </div>
 </header>
@@ -551,6 +619,10 @@ body.dark .stats-bar { background: #1a1a1a; border-color: #2a2a2a; }
 <div id="tb-toast" style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--gray-900);color:#fff;font-size:12px;font-weight:500;padding:8px 16px;border-radius:20px;box-shadow:0 4px 16px rgba(0,0,0,0.15);z-index:999;opacity:0;transition:opacity 0.2s;pointer-events:none;white-space:nowrap;"></div>
 
 <script>
+function clearSkeletons() {
+  // skeleton placeholder - Firebase yüklenince render çağrılıyor
+}
+
 function showToast(msg) {
   const t = document.getElementById('tb-toast');
   t.textContent = msg; t.style.opacity = '1';
@@ -720,14 +792,16 @@ function importTasks(event) {
       if (!data.tasks || !Array.isArray(data.tasks)) throw new Error('Geçersiz format');
       const existing = new Set(tasks.map(t => t.id));
       let added = 0;
+      const importPromises = [];
       data.tasks.forEach(t => {
         if (!existing.has(t.id)) {
-          // Yeni id ver (çakışma olmasın)
-          tasks.push({ ...t, id: 'task_' + Date.now() + '_' + Math.random().toString(36).slice(2) });
+          const newTask = { ...t, id: 'task_' + Date.now() + '_' + Math.random().toString(36).slice(2) };
+          tasks.push(newTask);
+          importPromises.push(window._saveTask(newTask));
           added++;
         }
       });
-      await saveTasks();
+      await Promise.all(importPromises);
       render();
       showToast('✅ ' + added + ' görev içe aktarıldı' + (data.tasks.length - added > 0 ? ', ' + (data.tasks.length - added) + ' zaten mevcut' : ''));
     } catch(err) {
@@ -739,39 +813,20 @@ function importTasks(event) {
 }
 
 // ── INDEXEDDB ──────────────────────────────────────────────
-function openDB() {
-  return new Promise((res, rej) => {
-    if (db) { res(db); return; }
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = e => e.target.result.createObjectStore(STORE, { keyPath: 'id' });
-    req.onsuccess = e => { db = e.target.result; res(db); };
-    req.onerror = e => rej(e);
-  });
-}
+// IndexedDB kaldırıldı - Firebase kullanılıyor
 async function saveTasks() {
-  const d = await openDB();
-  const tx = d.transaction(STORE, 'readwrite');
-  const store = tx.objectStore(STORE);
-  store.clear();
-  tasks.forEach(t => store.put(t));
+  // onSnapshot ile otomatik senkron - manuel save gerekmez
 }
 async function loadTasks() {
-  const d = await openDB();
-  return new Promise(res => {
-    const tx = d.transaction(STORE, 'readonly');
-    const req = tx.objectStore(STORE).getAll();
-    req.onsuccess = () => res(req.result || []);
-    req.onerror = () => res([]);
-  });
+  return []; // Firebase onSnapshot ile yükleniyor
 }
 
 // ── INIT ──────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', async () => {
   // Tema
   if (localStorage.getItem('twingo_theme') === 'dark') document.body.classList.add('dark');
-  tasks = await loadTasks();
   updateUsersBadge();
-  render();
+  // Görevler Firebase onAuthStateChanged → loadTasksFromFirebase ile yükleniyor
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeModal(); closeConfirm(); }
   });
@@ -911,7 +966,7 @@ function makeCard(t, isList) {
 async function toggleDone(id) {
   const t = tasks.find(x => x.id === id); if (!t) return;
   t.status = t.status === 'done' ? 'todo' : 'done';
-  await saveTasks(); render();
+  await window._saveTask(t); render();
 }
 
 async function deleteTask() {
@@ -922,7 +977,7 @@ async function deleteTask() {
   const ok = await showConfirm(`"${title}" silinecek.`);
   if (ok) {
     tasks = tasks.filter(t => t.id !== id);
-    await saveTasks(); render();
+    await window._deleteTask(id); render();
   }
 }
 
@@ -930,7 +985,7 @@ async function confirmDelete(id, title) {
   const ok = await showConfirm(`"${title}" silinecek.`);
   if (ok) {
     tasks = tasks.filter(t => t.id !== id);
-    await saveTasks(); render();
+    await window._deleteTask(id); render();
   }
 }
 
@@ -997,14 +1052,16 @@ async function saveTask() {
   if (!title) { document.getElementById('m-title').style.borderColor='var(--red)'; return; }
   document.getElementById('m-title').style.borderColor='';
 
+  let taskObj;
   if (editingId) {
-    const t = tasks.find(x => x.id === editingId);
-    if (t) { t.title = title; t.note = document.getElementById('m-note').value.trim(); t.type = mType; t.status = mType==='note'?'todo':mStatus; t.priority = mPriority; t.updatedAt = Date.now(); }
+    taskObj = tasks.find(x => x.id === editingId);
+    if (taskObj) { taskObj.title = title; taskObj.note = document.getElementById('m-note').value.trim(); taskObj.type = mType; taskObj.status = mType==='note'?'todo':mStatus; taskObj.priority = mPriority; taskObj.updatedAt = Date.now(); }
   } else {
-    tasks.unshift({ id: 'task_'+Date.now(), title, note: document.getElementById('m-note').value.trim(), type: mType, status: mType==='note'?'todo':mStatus, priority: mPriority, createdAt: Date.now(), updatedAt: Date.now() });
+    taskObj = { id: 'task_'+Date.now(), title, note: document.getElementById('m-note').value.trim(), type: mType, status: mType==='note'?'todo':mStatus, priority: mPriority, createdAt: Date.now(), updatedAt: Date.now() };
+    tasks.unshift(taskObj);
   }
-
-  await saveTasks(); render(); closeModal();
+  if (taskObj) await window._saveTask(taskObj);
+  render(); closeModal();
 }
 
 // ── CONFIRM ───────────────────────────────────────────────
