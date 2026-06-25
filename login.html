@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twingo Studio — Giriş</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f5f3; --white: #fff; --gray-100: #f0f0ee; --gray-200: #e4e4e0;
+  --gray-400: #a8a8a4; --gray-500: #717170; --gray-700: #383836; --gray-900: #141413;
+  --accent: #e05c2a; --accent-light: #fff3ee;
+  --radius-md: 10px; --radius-lg: 16px; --radius-xl: 22px;
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+}
+
+body {
+  font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg); color: var(--gray-900);
+  min-height: 100vh; display: flex; align-items: center; justify-content: center;
+}
+
+.login-box {
+  background: var(--white); border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg); padding: 40px;
+  width: 380px; max-width: 92vw;
+  display: flex; flex-direction: column; gap: 20px;
+  animation: popIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes popIn { from { transform: scale(0.95) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0); opacity: 1; } }
+
+.login-logo { text-align: center; }
+.login-logo h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+.login-logo h1 span { color: var(--accent); }
+.login-logo p { font-size: 12px; color: var(--gray-400); margin-top: 4px; }
+
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.06em; }
+.form-inp {
+  width: 100%; padding: 10px 12px; border: 1.5px solid var(--gray-200);
+  border-radius: var(--radius-md); font-family: inherit; font-size: 13px;
+  color: var(--gray-900); background: var(--gray-100); outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.form-inp:focus { border-color: var(--accent); background: var(--white); }
+
+.login-btn {
+  width: 100%; padding: 12px; border-radius: var(--radius-xl);
+  border: none; background: linear-gradient(135deg, #e05c2a, #c94d1e);
+  color: #fff; font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(224,92,42,0.3);
+}
+.login-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(224,92,42,0.4); }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.error-msg {
+  background: #fef2f2; border: 1px solid #fecaca;
+  border-radius: var(--radius-md); padding: 10px 12px;
+  font-size: 12px; color: #dc2626; display: none;
+}
+.error-msg.show { display: block; }
+
+.divider { display: flex; align-items: center; gap: 10px; color: var(--gray-400); font-size: 11px; }
+.divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--gray-200); }
+
+.register-link { text-align: center; font-size: 12px; color: var(--gray-400); }
+.register-link a { color: var(--accent); font-weight: 500; cursor: pointer; text-decoration: none; }
+.register-link a:hover { text-decoration: underline; }
+
+/* Register form */
+#register-form { display: none; flex-direction: column; gap: 20px; }
+</style>
+</head>
+<body>
+
+<div class="login-box">
+  <div class="login-logo">
+    <h1>Twingo <span>Studio</span></h1>
+    <p>Ekip paneline giriş yap</p>
+  </div>
+
+  <div class="error-msg" id="error-msg"></div>
+
+  <!-- LOGIN FORM -->
+  <div id="login-form" style="display:flex;flex-direction:column;gap:14px;">
+    <div class="form-group">
+      <label class="form-label">E-posta</label>
+      <input class="form-inp" type="email" id="login-email" placeholder="ornek@email.com" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Şifre</label>
+      <input class="form-inp" type="password" id="login-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="login()">Giriş Yap</button>
+    <div class="register-link">Hesabın yok mu? <a onclick="showRegister()">Kayıt ol</a></div>
+  </div>
+
+  <!-- REGISTER FORM -->
+  <div id="register-form">
+    <div class="form-group">
+      <label class="form-label">Ad Soyad</label>
+      <input class="form-inp" type="text" id="reg-name" placeholder="Yasir Demir">
+    </div>
+    <div class="form-group">
+      <label class="form-label">E-posta</label>
+      <input class="form-inp" type="email" id="reg-email" placeholder="ornek@email.com">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Şifre</label>
+      <input class="form-inp" type="password" id="reg-password" placeholder="En az 6 karakter" onkeydown="if(event.key==='Enter')register()">
+    </div>
+    <button class="login-btn" id="reg-btn" onclick="register()">Hesap Oluştur</button>
+    <div class="register-link">Zaten hesabın var mı? <a onclick="showLogin()">Giriş yap</a></div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
+  authDomain: "twingostudio-cc351.firebaseapp.com",
+  projectId: "twingostudio-cc351",
+  storageBucket: "twingostudio-cc351.firebasestorage.app",
+  messagingSenderId: "236093689838",
+  appId: "1:236093689838:web:b502546fdf61b1cc6288ff",
+  measurementId: "G-ERR98B9BLS"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Zaten giriş yapmışsa index'e yönlendir
+onAuthStateChanged(auth, user => {
+  if (user) window.location.href = 'index.html';
+});
+
+window.login = async () => {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('error-msg');
+
+  if (!email || !password) { showError('E-posta ve şifre gir.'); return; }
+  btn.disabled = true; btn.textContent = 'Giriş yapılıyor...';
+  errEl.classList.remove('show');
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    window.location.href = 'index.html';
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Giriş Yap';
+    const msgs = {
+      'auth/user-not-found': 'Bu e-posta ile kayıtlı kullanıcı yok.',
+      'auth/wrong-password': 'Şifre hatalı.',
+      'auth/invalid-email': 'Geçersiz e-posta adresi.',
+      'auth/invalid-credential': 'E-posta veya şifre hatalı.',
+      'auth/too-many-requests': 'Çok fazla deneme. Lütfen bekle.'
+    };
+    showError(msgs[e.code] || 'Giriş başarısız: ' + e.message);
+  }
+};
+
+window.register = async () => {
+  const name = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const btn = document.getElementById('reg-btn');
+
+  if (!name || !email || !password) { showError('Tüm alanları doldur.'); return; }
+  if (password.length < 6) { showError('Şifre en az 6 karakter olmalı.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Oluşturuluyor...';
+
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    await updateProfile(cred.user, { displayName: name });
+    window.location.href = 'index.html';
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Hesap Oluştur';
+    const msgs = {
+      'auth/email-already-in-use': 'Bu e-posta zaten kayıtlı.',
+      'auth/invalid-email': 'Geçersiz e-posta adresi.',
+      'auth/weak-password': 'Şifre çok zayıf.'
+    };
+    showError(msgs[e.code] || 'Kayıt başarısız: ' + e.message);
+  }
+};
+
+window.showRegister = () => {
+  document.getElementById('login-form').style.display = 'none';
+  document.getElementById('register-form').style.display = 'flex';
+  document.getElementById('error-msg').classList.remove('show');
+};
+
+window.showLogin = () => {
+  document.getElementById('register-form').style.display = 'none';
+  document.getElementById('login-form').style.display = 'flex';
+  document.getElementById('error-msg').classList.remove('show');
+};
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg; el.classList.add('show');
+}
+</script>
+</body>
+</html>
