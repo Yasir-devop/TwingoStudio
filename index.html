@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Twingo Design</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f5f3;
+  --white: #ffffff;
+  --gray-100: #f0f0ee;
+  --gray-200: #e4e4e0;
+  --gray-300: #d0d0cc;
+  --gray-400: #a8a8a4;
+  --gray-500: #717170;
+  --gray-700: #383836;
+  --gray-900: #141413;
+  --accent: #e05c2a;
+  --accent-light: #fff3ee;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 20px rgba(0,0,0,0.08);
+  --shadow-lg: 0 12px 48px rgba(0,0,0,0.10);
+}
+
+/* ── SKELETON LOADER ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 50%, var(--gray-100) 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite;
+  border-radius: 6px;
+}
+.skeleton-card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--gray-200);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.sk-icon  { width: 56px; height: 56px; border-radius: var(--radius-md); }
+.sk-badge { width: 60px; height: 20px; align-self: flex-end; margin-top: -52px; }
+.sk-title { width: 60%; height: 22px; margin-top: 8px; }
+.sk-text1 { width: 100%; height: 13px; }
+.sk-text2 { width: 85%;  height: 13px; }
+.sk-text3 { width: 70%;  height: 13px; }
+.sk-tags  { display: flex; gap: 6px; margin-top: 4px; }
+.sk-tag   { width: 80px; height: 22px; border-radius: 6px; }
+.sk-cta   { width: 120px; height: 18px; margin-top: 8px; }
+
+body { font-family: 'Inter', -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--gray-900);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── HERO ── */
+.hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 40px 40px;
+  text-align: center;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-light);
+  border: 1px solid #fbd5c0;
+  border-radius: 20px;
+  padding: 5px 14px;
+  margin-bottom: 24px;
+}
+
+.hero h1 {
+  font-size: clamp(28px, 5vw, 52px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: var(--gray-900);
+  margin-bottom: 16px;
+}
+.hero h1 span { color: var(--accent); }
+
+.hero p {
+  font-size: 16px;
+  color: var(--gray-500);
+  max-width: 480px;
+  line-height: 1.6;
+  margin-bottom: 56px;
+}
+
+/* ── CARD GRID ── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 960px;
+}
+
+.card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--gray-200);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--gray-300);
+}
+.card.active:hover { border-color: var(--accent); }
+
+.card-icon {
+  width: 56px; height: 56px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+.card.active .card-icon { background: var(--accent-light); }
+.card.coming .card-icon { background: var(--gray-100); }
+
+.card-badge {
+  position: absolute; top: 20px; right: 20px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 3px 10px;
+  border-radius: 20px;
+}
+.card.active .card-badge { background: #dcfce7; color: #15803d; }
+.card.coming .card-badge { background: var(--gray-100); color: var(--gray-400); }
+
+.card h2 {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--gray-900);
+  margin-top: 4px;
+}
+.card p {
+  font-size: 13px;
+  color: var(--gray-500);
+  line-height: 1.6;
+  flex: 1;
+}
+
+.card-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.feature-tag {
+  font-size: 11px;
+  color: var(--gray-500);
+  background: var(--gray-100);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+.card.active .feature-tag {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.card-cta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+.card.active .card-cta { color: var(--accent); }
+.card.coming .card-cta { color: var(--gray-400); }
+
+.card-cta-arrow {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  transition: transform 0.15s;
+}
+.card.active .card-cta-arrow { background: var(--accent-light); }
+.card.coming .card-cta-arrow { background: var(--gray-100); }
+.card.active:hover .card-cta-arrow { transform: translateX(3px); }
+
+/* ── FOOTER ── */
+footer {
+  padding: 24px 40px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--gray-400);
+  border-top: 1px solid var(--gray-200);
+  margin-top: 60px;
+}
+
+/* ── DARK THEME ── */
+body.dark {
+  --white: #1e1e1e;
+  --gray-50: #252525;
+  --gray-100: #2e2e2e;
+  --gray-200: #3a3a3a;
+  --gray-300: #4a4a4a;
+  --gray-400: #767676;
+  --gray-500: #9a9a9a;
+  --gray-700: #d0d0d0;
+  --gray-900: #f0f0f0;
+  --bg: #141414;
+  --accent-light: #1e2d4a;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
+}
+body.dark header { background: #111; border-bottom-color: #2a2a2a; }
+
+/* Theme Switch */
+.theme-switch-row { display: flex; align-items: center; justify-content: space-between; }
+.theme-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+.theme-switch input { opacity: 0; width: 0; height: 0; }
+.theme-slider { position: absolute; inset: 0; cursor: pointer; background: var(--gray-200); border-radius: 24px; transition: background 0.2s; }
+.theme-slider::before { content: ''; position: absolute; width: 18px; height: 18px; border-radius: 50%; left: 3px; top: 3px; background: var(--white); transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
+.theme-switch input:checked + .theme-slider { background: #2563eb; }
+.theme-switch input:checked + .theme-slider::before { transform: translateX(20px); }
+
+/* Theme button in header */
+.theme-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px; border-radius: var(--radius-xl);
+  border: 1px solid var(--gray-200); background: var(--gray-100);
+  cursor: pointer; font-family: inherit; font-size: 11px; color: var(--gray-700);
+  transition: background 0.12s;
+}
+.theme-btn:hover { background: var(--gray-200); }
+
+</style>
+</head>
+<body>
+
+<main class="hero">
+
+  <div style="position:fixed;top:16px;right:16px;z-index:200;display:flex;gap:8px;">
+    <button onclick="openStores()" id="stores-btn" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;border:1px solid var(--gray-200);background:var(--white);font-family:inherit;font-size:12px;font-weight:500;color:var(--gray-700);cursor:pointer;box-shadow:var(--shadow-sm);transition:background 0.12s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='var(--white)'">🏪 Aktif Mağazalar <span id="store-count-badge" style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;display:none;">0</span></button>
+    <button onclick="openSettings()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;border:1px solid var(--gray-200);background:var(--white);font-family:inherit;font-size:12px;font-weight:500;color:var(--gray-700);cursor:pointer;box-shadow:var(--shadow-sm);transition:background 0.12s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='var(--white)'">⚙️ Ayarlar</button>
+  </div>
+
+  <div class="hero-tag">✦ Twingo Design Tools</div>
+
+  <h1>Twingo Design<br><span>Online Editör</span></h1>
+  <p>Tüm tasarım araçlarına tek bir panelden ulaş. Hızlı, lokal, internet gerektirmez.</p>
+
+  <div class="grid" id="card-grid">
+    <div class="skeleton-card"><div class="skeleton sk-badge"></div><div class="skeleton sk-icon"></div><div class="skeleton sk-title"></div><div class="skeleton sk-text1"></div><div class="skeleton sk-text2"></div><div class="sk-tags"><div class="skeleton sk-tag"></div><div class="skeleton sk-tag"></div></div><div class="skeleton sk-cta"></div></div>
+    <div class="skeleton-card"><div class="skeleton sk-badge"></div><div class="skeleton sk-icon"></div><div class="skeleton sk-title"></div><div class="skeleton sk-text1"></div><div class="skeleton sk-text2"></div><div class="sk-tags"><div class="skeleton sk-tag"></div><div class="skeleton sk-tag"></div></div><div class="skeleton sk-cta"></div></div>
+    <div class="skeleton-card"><div class="skeleton sk-badge"></div><div class="skeleton sk-icon"></div><div class="skeleton sk-title"></div><div class="skeleton sk-text1"></div><div class="skeleton sk-text2"></div><div class="sk-tags"><div class="skeleton sk-tag"></div><div class="skeleton sk-tag"></div></div><div class="skeleton sk-cta"></div></div>
+  </div>
+
+<script>
+const cards = [
+    // Mockup Studio
+    {
+      cls: 'active', href: 'twingoMockup.html',
+      badge: 'Aktif', icon: '👕',
+      title: 'Mockup Studio',
+      desc: 'Tişört mockuplarını tasarımlarınla birleştir. Set yönetimi, konum presetleri ve toplu checkout.',
+      tags: ['Mockup Setleri','Konum Presetleri','Toplu Export','2500×2389 JPG'],
+      cta: 'Uygulamayı Aç'
+    },
+    // Team Board
+    {
+      cls: 'active', href: 'twingoTeamBoard.html',
+      badge: 'Aktif', icon: '📋',
+      title: 'Team Board',
+      desc: 'Ekip görev ve notlarını yönet. Kanban görünümü, öncelik ve filtrelerle tam kontrol.',
+      tags: ['Görev & Not','Kanban','Öncelik','Ekip'],
+      cta: 'Uygulamayı Aç'
+    },
+    // SEO Studio — yakında
+    {
+      cls: 'coming', href: null,
+      badge: 'Yakında', icon: '🏷️',
+      title: 'SEO Studio',
+      desc: 'Görsel + eRank CSV yükle, Claude AI 5 adımlı analiz ile title, 13 tag ve description üretsin.',
+      tags: ['Görsel Analiz','eRank CSV','13 Tag','180 Kelime Desc'],
+      cta: 'Geliyor'
+    },
+    // Yakında — gizli (sadece aktif kartlar gösterilir)
+    // { cls: 'coming', href: null, badge: 'Yakında', icon: '🎨', title: 'Tasarım Editörü', ... }
+];
+
+function renderCards() {
+  const grid = document.getElementById('card-grid');
+  grid.innerHTML = '';
+  cards.forEach((c, idx) => {
+    const el = c.href ? document.createElement('a') : document.createElement('div');
+    if (c.href) el.href = c.href;
+    el.className = 'card ' + c.cls;
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(16px)';
+    el.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+    el.innerHTML = `
+      <div class="card-badge">${c.badge}</div>
+      <div class="card-icon">${c.icon}</div>
+      <h2>${c.title}</h2>
+      <p>${c.desc}</p>
+      <div class="card-features">${c.tags.map(t=>`<span class="feature-tag">${t}</span>`).join('')}</div>
+      <div class="card-cta">${c.cta}<div class="card-cta-arrow">→</div></div>
+    `;
+    grid.appendChild(el);
+    // Staggered fade-in
+    setTimeout(() => {
+      el.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+    }, 80 + idx * 100);
+  });
+}
+
+// Kısa bir gecikme ile skeleton göster, sonra gerçek kartları yükle
+setTimeout(renderCards, 400);
+
+// ── TEMA ─────────────────────────────────────────────────
+function toggleTheme(isDark) {
+  document.body.classList.toggle('dark', isDark);
+  localStorage.setItem('twingo_theme', isDark ? 'dark' : 'light');
+  const lbl = document.getElementById('theme-label');
+  if (lbl) lbl.textContent = isDark ? 'Şu an: Koyu Tema' : 'Şu an: Açık Tema';
+  const toggle = document.getElementById('theme-toggle');
+  if (toggle) toggle.checked = isDark;
+}
+// Sayfa yüklenince temayı uygula
+(function() {
+  const saved = localStorage.getItem('twingo_theme');
+  if (saved === 'dark') {
+    document.body.classList.add('dark');
+    window.addEventListener('DOMContentLoaded', () => {
+      const t = document.getElementById('theme-toggle'); if (t) t.checked = true;
+      const l = document.getElementById('theme-label'); if (l) l.textContent = 'Şu an: Koyu Tema';
+    });
+  }
+})();
+
+
+
+// ── MAĞAZALAR ─────────────────────────────────────────────
+let stores = JSON.parse(localStorage.getItem('twingo_stores') || '[]');
+
+function saveStores() { localStorage.setItem('twingo_stores', JSON.stringify(stores)); }
+
+function openStores() {
+  renderStoreList();
+  document.getElementById('stores-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById('store-name-inp').focus(), 100);
+}
+function closeStores() {
+  document.getElementById('stores-modal').style.display = 'none';
+}
+
+function addStore() {
+  const name = document.getElementById('store-name-inp').value.trim();
+  const url  = document.getElementById('store-url-inp').value.trim();
+  if (!name) { document.getElementById('store-name-inp').style.borderColor='var(--accent)'; return; }
+  document.getElementById('store-name-inp').style.borderColor='';
+  stores.push({ id: 'store_' + Date.now(), name, url, addedAt: Date.now() });
+  saveStores();
+  document.getElementById('store-name-inp').value = '';
+  document.getElementById('store-url-inp').value = '';
+  renderStoreList();
+  updateStoreBadge();
+}
+
+function deleteStore(id) {
+  stores = stores.filter(s => s.id !== id);
+  saveStores(); renderStoreList(); updateStoreBadge();
+}
+
+function renderStoreList() {
+  const list = document.getElementById('store-list');
+  document.getElementById('stores-total').textContent = stores.length + ' mağaza';
+  if (!stores.length) {
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px;">Henüz mağaza eklenmedi</div>';
+    return;
+  }
+  list.innerHTML = '';
+  stores.forEach((s, i) => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--gray-100);border-radius:10px;border:1px solid var(--gray-200);';
+    const num = `<span style="width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</span>`;
+    const info = `<div style="flex:1;min-width:0;">
+      <div style="font-size:13px;font-weight:600;color:var(--gray-900);">${s.name}</div>
+      ${s.url ? `<a href="${s.url}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none;">${s.url.replace('https://www.etsy.com/shop/','etsy.com/shop/')}</a>` : '<div style="font-size:11px;color:var(--gray-400);">URL eklenmedi</div>'}
+    </div>`;
+    const del = `<button onclick="deleteStore('${s.id}')" style="width:28px;height:28px;border-radius:50%;background:transparent;border:none;cursor:pointer;font-size:16px;color:var(--gray-400);display:flex;align-items:center;justify-content:center;transition:color 0.12s;" onmouseover="this.style.color='#dc2626'" onmouseout="this.style.color='var(--gray-400)'">×</button>`;
+    row.innerHTML = num + info + del;
+    list.appendChild(row);
+  });
+}
+
+function updateStoreBadge() {
+  const badge = document.getElementById('store-count-badge');
+  if (stores.length > 0) {
+    badge.textContent = stores.length;
+    badge.style.display = 'inline';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// Sayfa yüklenince badge güncelle
+window.addEventListener('DOMContentLoaded', () => { updateStoreBadge(); });
+
+function openSettings() {
+  const isDark = document.body.classList.contains('dark');
+  const toggle = document.getElementById('theme-toggle');
+  if (toggle) toggle.checked = isDark;
+  document.getElementById('theme-label').textContent = isDark ? 'Şu an: Koyu Tema' : 'Şu an: Açık Tema';
+  const modal = document.getElementById('settings-modal');
+  modal.style.display = 'flex';
+}
+function closeSettings() {
+  document.getElementById('settings-modal').style.display = 'none';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeSettings();
+});
+
+</script>
+</main>
+
+
+
+<!-- MAĞAZALAR MODAL -->
+<div id="stores-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(3px);">
+  <div style="background:var(--white);border-radius:18px;box-shadow:var(--shadow-lg);padding:24px;width:420px;max-width:92vw;max-height:85vh;display:flex;flex-direction:column;gap:14px;animation:settingsPop 0.18s cubic-bezier(0.34,1.56,0.64,1);">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <div style="font-size:16px;font-weight:700;color:var(--gray-900);">🏪 Aktif Mağazalar</div>
+      <span id="stores-total" style="background:var(--gray-100);color:var(--gray-500);border-radius:10px;padding:2px 8px;font-size:11px;font-weight:600;margin-left:auto;">0 mağaza</span>
+    </div>
+
+    <!-- Yeni mağaza ekle -->
+    <div style="display:flex;flex-direction:column;gap:8px;background:var(--gray-100);border-radius:12px;padding:12px;">
+      <input id="store-name-inp" type="text" placeholder="Mağaza adı (örn: TwingoDesignCo)" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-family:inherit;font-size:13px;background:var(--white);color:var(--gray-900);outline:none;" onkeydown="if(event.key==='Enter')addStore()">
+      <input id="store-url-inp" type="text" placeholder="Etsy mağaza URL (opsiyonel)" style="width:100%;padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:8px;font-family:inherit;font-size:13px;background:var(--white);color:var(--gray-900);outline:none;">
+      <button onclick="addStore()" style="width:100%;padding:10px;border-radius:8px;background:var(--gray-900);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">+ Mağaza Ekle</button>
+    </div>
+
+    <!-- Mağaza listesi -->
+    <div id="store-list" style="display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:320px;"></div>
+
+    <button onclick="closeStores()" style="padding:10px;border-radius:10px;background:var(--gray-900);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;margin-top:4px;">Kapat</button>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(3px);">
+  <div style="background:var(--white);border-radius:18px;box-shadow:var(--shadow-lg);padding:24px;width:360px;max-width:90vw;display:flex;flex-direction:column;gap:14px;animation:settingsPop 0.18s cubic-bezier(0.34,1.56,0.64,1);">
+    <div style="font-size:16px;font-weight:700;color:var(--gray-900);">⚙️ Ayarlar</div>
+
+    <!-- Tema -->
+    <div style="background:var(--gray-100);border:1px solid var(--gray-200);border-radius:12px;padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <div>
+          <div style="font-size:13px;font-weight:600;color:var(--gray-900);margin-bottom:2px;">🎨 Tema</div>
+          <div style="font-size:11px;color:var(--gray-400);" id="theme-label">Şu an: Açık Tema</div>
+        </div>
+        <label class="theme-switch">
+          <input type="checkbox" id="theme-toggle" onchange="toggleTheme(this.checked)">
+          <span class="theme-slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--gray-400);line-height:1.6;background:var(--gray-100);border-radius:8px;padding:10px;">
+      Tema tercihin tüm Twingo araçlarına uygulanır ve tarayıcıda kaydedilir.
+    </div>
+
+    <button onclick="closeSettings()" style="padding:10px;border-radius:10px;background:var(--gray-900);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">Kapat</button>
+  </div>
+</div>
+
+<style>
+@keyframes settingsPop {
+  from { transform: scale(0.9); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+</style>
+
+<footer>
+  © <script>document.write(new Date().getFullYear())</script> Twingo Design · Tüm araçlar lokalde çalışır, internet gerektirmez.
+</footer>
+
+</body>
+</html>
