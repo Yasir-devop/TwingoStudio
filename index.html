@@ -322,6 +322,15 @@ window.logout = () => signOut(auth).then(() => window.location.href = 'login.htm
 
 <script>
 const cards = [
+    // Dashboard
+    {
+      cls: 'active', href: 'dashboard.html',
+      badge: 'Aktif', icon: '📊',
+      title: 'Dashboard',
+      desc: 'Etsy mağazanı bağla, satış rakamlarını, siparişleri ve trend ürünleri takip et.',
+      tags: ['Satış Grafikleri','Sipariş Takip','Trend Ürünler','Etsy'],
+      cta: 'Uygulamayı Aç'
+    },
     // Mockup Studio
     {
       cls: 'active', href: 'twingoMockup.html',
@@ -329,6 +338,15 @@ const cards = [
       title: 'Mockup Studio',
       desc: 'Tişört mockuplarını tasarımlarınla birleştir. Set yönetimi, konum presetleri ve toplu checkout.',
       tags: ['Mockup Setleri','Konum Presetleri','Toplu Export','2500×2389 JPG'],
+      cta: 'Uygulamayı Aç'
+    },
+    // Tasarım Feed
+    {
+      cls: 'active', href: 'twingoFeed.html',
+      badge: 'Aktif', icon: '🎨',
+      title: 'Tasarım Feed',
+      desc: 'Tasarımlarını ekiple paylaş, beğeni ve yorum al. Paylaşımlar 24 saat sonra otomatik silinir.',
+      tags: ['Görsel Paylaş','Beğeni','Yorum','24s Otomatik Sil'],
       cta: 'Uygulamayı Aç'
     },
     // Team Board

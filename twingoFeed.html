@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasarım Feed</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f5f5f3;--white:#fff;--gray-50:#fafaf9;--gray-100:#f0f0ee;
+  --gray-200:#e4e4e0;--gray-300:#d0d0cc;--gray-400:#a8a8a4;
+  --gray-500:#717170;--gray-700:#383836;--gray-900:#141413;
+  --accent:#e05c2a;--accent-light:#fff3ee;
+  --blue:#2563eb;--blue-light:#eff4ff;
+  --green:#16a34a;--green-light:#f0fdf4;
+  --red:#dc2626;--red-light:#fef2f2;
+  --radius-sm:6px;--radius-md:10px;--radius-lg:16px;--radius-xl:22px;
+  --shadow-sm:0 1px 3px rgba(0,0,0,0.06);--shadow-md:0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg:0 12px 40px rgba(0,0,0,0.12);
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--gray-900);min-height:100vh;visibility:hidden;}
+body.dark{--white:#1e1e1e;--gray-50:#252525;--gray-100:#2e2e2e;--gray-200:#3a3a3a;--gray-400:#767676;--gray-500:#9a9a9a;--gray-700:#d0d0d0;--gray-900:#f0f0f0;--bg:#141414;}
+body.dark header{background:#111;border-color:#2a2a2a;}
+
+/* HEADER */
+header{height:52px;background:var(--white);border-bottom:1px solid var(--gray-200);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:100;}
+.header-logo{font-size:14px;font-weight:600;}
+.header-logo span{color:var(--accent);}
+.header-sep{width:1px;height:18px;background:var(--gray-200);}
+.header-actions{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.btn-sm{font-family:inherit;font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--gray-200);background:var(--gray-50);color:var(--gray-500);cursor:pointer;text-decoration:none;}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:1fr min(560px,100%) 1fr;padding:20px 0;}
+.feed{grid-column:2;display:flex;flex-direction:column;gap:16px;padding:0 16px;}
+
+/* POST COMPOSER */
+.composer{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--shadow-sm);}
+.composer-top{display:flex;gap:10px;align-items:flex-start;}
+.user-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;}
+.composer-input{flex:1;border:1.5px solid var(--gray-200);border-radius:var(--radius-md);padding:10px 12px;font-family:inherit;font-size:13px;color:var(--gray-900);background:var(--gray-50);outline:none;resize:none;min-height:60px;transition:border-color 0.15s;}
+.composer-input:focus{border-color:var(--accent);background:var(--white);}
+.composer-actions{display:flex;gap:8px;margin-top:10px;align-items:center;}
+.upload-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--radius-xl);border:1.5px dashed var(--gray-200);background:var(--gray-50);color:var(--gray-500);font-family:inherit;font-size:12px;cursor:pointer;transition:all 0.15s;}
+.upload-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
+.upload-btn input{display:none;}
+.expire-select{font-family:inherit;font-size:11px;padding:6px 8px;border:1px solid var(--gray-200);border-radius:var(--radius-sm);background:var(--white);color:var(--gray-500);outline:none;cursor:pointer;}
+.post-btn{margin-left:auto;padding:8px 18px;border-radius:var(--radius-xl);border:none;background:var(--accent);color:#fff;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;box-shadow:0 2px 8px rgba(224,92,42,0.3);}
+.post-btn:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(224,92,42,0.4);}
+.post-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+/* IMAGE PREVIEW */
+.img-preview-wrap{position:relative;margin-top:10px;border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--gray-200);}
+.img-preview-wrap img{width:100%;max-height:200px;object-fit:cover;display:block;}
+.img-remove{position:absolute;top:8px;right:8px;width:24px;height:24px;border-radius:50%;background:rgba(0,0,0,0.6);color:#fff;border:none;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+
+/* UPLOAD PROGRESS */
+.upload-progress{margin-top:8px;height:3px;background:var(--gray-200);border-radius:2px;overflow:hidden;display:none;}
+.upload-progress-bar{height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s;}
+
+/* POST CARD */
+.post-card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);animation:fadeIn 0.3s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.post-header{display:flex;align-items:center;gap:10px;padding:12px 14px;}
+.post-user-info{flex:1;}
+.post-username{font-size:13px;font-weight:600;color:var(--gray-900);}
+.post-meta{font-size:11px;color:var(--gray-400);display:flex;align-items:center;gap:6px;}
+.expire-badge{font-size:10px;padding:2px 6px;border-radius:10px;background:var(--red-light);color:var(--red);font-weight:600;}
+.expire-badge.safe{background:var(--green-light);color:var(--green);}
+.post-delete{background:none;border:none;cursor:pointer;color:var(--gray-300);font-size:16px;padding:4px;border-radius:4px;transition:color 0.12s;}
+.post-delete:hover{color:var(--red);}
+
+.post-text{padding:0 14px 10px;font-size:13px;color:var(--gray-700);line-height:1.6;white-space:pre-wrap;}
+.post-img{width:100%;display:block;cursor:pointer;transition:opacity 0.15s;max-height:480px;object-fit:cover;}
+.post-img:hover{opacity:0.95;}
+
+.post-actions{display:flex;gap:0;padding:8px 6px;border-top:1px solid var(--gray-100);}
+.action-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:var(--radius-md);border:none;background:transparent;font-family:inherit;font-size:12px;color:var(--gray-500);cursor:pointer;transition:background 0.12s,color 0.12s;}
+.action-btn:hover{background:var(--gray-100);}
+.action-btn.liked{color:var(--red);font-weight:600;}
+.action-btn.liked .heart-icon{animation:heartPop 0.3s ease;}
+@keyframes heartPop{0%{transform:scale(1);}50%{transform:scale(1.4);}100%{transform:scale(1);}}
+
+/* COMMENTS */
+.comments-wrap{padding:0 14px 12px;display:none;flex-direction:column;gap:8px;}
+.comments-wrap.show{display:flex;}
+.comment{display:flex;gap:8px;align-items:flex-start;}
+.comment-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+.comment-body{flex:1;background:var(--gray-50);border-radius:var(--radius-md);padding:7px 10px;}
+.comment-name{font-size:11px;font-weight:600;color:var(--gray-700);}
+.comment-text{font-size:12px;color:var(--gray-600,#555);margin-top:2px;line-height:1.5;}
+.comment-time{font-size:10px;color:var(--gray-400);margin-top:2px;}
+.comment-del{background:none;border:none;cursor:pointer;color:var(--gray-300);font-size:12px;padding:2px 4px;flex-shrink:0;}
+.comment-del:hover{color:var(--red);}
+.comment-input-wrap{display:flex;gap:8px;align-items:center;margin-top:4px;}
+.comment-inp{flex:1;padding:7px 10px;border:1.5px solid var(--gray-200);border-radius:var(--radius-xl);font-family:inherit;font-size:12px;background:var(--gray-50);color:var(--gray-900);outline:none;transition:border-color 0.15s;}
+.comment-inp:focus{border-color:var(--accent);background:var(--white);}
+.comment-send{width:30px;height:30px;border-radius:50%;border:none;background:var(--accent);color:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+
+/* EMPTY */
+.empty-feed{text-align:center;padding:48px 20px;color:var(--gray-400);}
+.empty-feed-icon{font-size:40px;margin-bottom:12px;}
+.empty-feed h3{font-size:14px;font-weight:600;color:var(--gray-700);margin-bottom:6px;}
+
+/* LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999;align-items:center;justify-content:center;cursor:zoom-out;}
+.lightbox.show{display:flex;}
+.lightbox img{max-width:90vw;max-height:90vh;border-radius:var(--radius-md);object-fit:contain;}
+
+/* TOAST */
+#feed-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--gray-900);color:#fff;font-size:12px;font-weight:500;padding:8px 16px;border-radius:var(--radius-xl);box-shadow:var(--shadow-md);z-index:999;opacity:0;transition:opacity 0.2s;pointer-events:none;white-space:nowrap;}
+
+::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-thumb{background:var(--gray-200);border-radius:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">Tasarım <span>Feed</span></div>
+  <div class="header-sep"></div>
+  <span style="font-size:11px;color:var(--gray-400);" id="user-display"></span>
+  <div class="header-actions">
+    <a href="index.html" class="btn-sm">← Ana Sayfa</a>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="feed" id="feed">
+
+    <!-- COMPOSER -->
+    <div class="composer">
+      <div class="composer-top">
+        <div class="user-avatar" id="composer-avatar" style="background:#e05c2a;">T</div>
+        <textarea class="composer-input" id="post-text" placeholder="Yeni tasarımını paylaş, ekipten yorum al..."></textarea>
+      </div>
+      <div id="composer-img-preview" class="img-preview-wrap" style="display:none;">
+        <img id="composer-img" src="">
+        <button class="img-remove" onclick="removeComposerImg()">×</button>
+      </div>
+      <div class="upload-progress" id="upload-progress">
+        <div class="upload-progress-bar" id="upload-progress-bar" style="width:0%"></div>
+      </div>
+      <div class="composer-actions">
+        <label class="upload-btn">
+          🖼️ Görsel Ekle
+          <input type="file" id="img-file" accept="image/*" onchange="handleImageSelect(event)">
+        </label>
+        <select class="expire-select" id="expire-select">
+          <option value="12">12 saat sonra silinir</option>
+          <option value="24" selected>24 saat sonra silinir</option>
+          <option value="48">48 saat sonra silinir</option>
+        </select>
+        <button class="post-btn" id="post-btn" onclick="submitPost()">Paylaş</button>
+      </div>
+    </div>
+
+    <!-- POSTS -->
+    <div id="posts-container">
+      <div class="empty-feed">
+        <div class="empty-feed-icon">🎨</div>
+        <h3>Henüz paylaşım yok</h3>
+        <p style="font-size:12px;">İlk tasarımını paylaş, ekipten geri bildirim al!</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <img id="lightbox-img" src="">
+</div>
+
+<div id="feed-toast"></div>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, orderBy, where, updateDoc, arrayUnion, arrayRemove, serverTimestamp, Timestamp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
+  authDomain: "twingostudio-cc351.firebaseapp.com",
+  projectId: "twingostudio-cc351",
+  storageBucket: "twingostudio-cc351.firebasestorage.app",
+  messagingSenderId: "236093689838",
+  appId: "1:236093689838:web:b502546fdf61b1cc6288ff"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const IMGBB_KEY = 'cad6fea711a7a4ffc3d99ffc0727d6aa';
+const USER_COLORS = ['#e05c2a','#2563eb','#16a34a','#7c3aed','#ca8a04','#dc2626','#0891b2','#be185d'];
+
+let currentUser = null;
+let selectedImageFile = null;
+let selectedImagePreview = null;
+let unsubPosts = null;
+
+// ── AUTH ──────────────────────────────────────────────
+onAuthStateChanged(auth, user => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  currentUser = user;
+  document.body.style.visibility = 'visible';
+
+  const name = user.displayName || user.email;
+  document.getElementById('user-display').textContent = name;
+  document.getElementById('composer-avatar').textContent = name[0].toUpperCase();
+  document.getElementById('composer-avatar').style.background = getUserColor(user.uid);
+
+  loadPosts();
+  // Süresi dolan postları temizle
+  cleanExpired();
+  setInterval(cleanExpired, 60000);
+});
+
+function getUserColor(uid) {
+  let h = 0; for (let c of uid) h = c.charCodeAt(0) + ((h << 5) - h);
+  return USER_COLORS[Math.abs(h) % USER_COLORS.length];
+}
+
+// ── IMAGE SELECT ──────────────────────────────────────
+window.handleImageSelect = (e) => {
+  const file = e.target.files[0]; if (!file) return;
+  selectedImageFile = file;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    selectedImagePreview = ev.target.result;
+    document.getElementById('composer-img').src = ev.target.result;
+    document.getElementById('composer-img-preview').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+};
+
+window.removeComposerImg = () => {
+  selectedImageFile = null; selectedImagePreview = null;
+  document.getElementById('composer-img-preview').style.display = 'none';
+  document.getElementById('img-file').value = '';
+};
+
+// ── UPLOAD TO IMGBB ───────────────────────────────────
+async function uploadToImgBB(file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  const progress = document.getElementById('upload-progress');
+  const bar = document.getElementById('upload-progress-bar');
+  progress.style.display = 'block';
+
+  // Fake progress animation
+  let p = 0;
+  const interval = setInterval(() => { p = Math.min(p + 10, 85); bar.style.width = p + '%'; }, 200);
+
+  const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_KEY}`, { method: 'POST', body: formData });
+  const data = await res.json();
+  clearInterval(interval);
+  bar.style.width = '100%';
+  setTimeout(() => { progress.style.display = 'none'; bar.style.width = '0%'; }, 500);
+
+  if (!data.success) throw new Error('Görsel yükleme başarısız');
+  return data.data.url;
+}
+
+// ── SUBMIT POST ───────────────────────────────────────
+window.submitPost = async () => {
+  const text = document.getElementById('post-text').value.trim();
+  const hours = parseInt(document.getElementById('expire-select').value);
+  if (!text && !selectedImageFile) { showToast('Metin veya görsel ekle.'); return; }
+
+  const btn = document.getElementById('post-btn');
+  btn.disabled = true; btn.textContent = 'Paylaşılıyor...';
+
+  try {
+    let imageUrl = null;
+    if (selectedImageFile) imageUrl = await uploadToImgBB(selectedImageFile);
+
+    const expireAt = new Date(Date.now() + hours * 3600000);
+    await addDoc(collection(db, 'feed_posts'), {
+      text, imageUrl,
+      userId: currentUser.uid,
+      userName: currentUser.displayName || currentUser.email,
+      userColor: getUserColor(currentUser.uid),
+      createdAt: serverTimestamp(),
+      expireAt: Timestamp.fromDate(expireAt),
+      likes: [],
+      comments: []
+    });
+
+    document.getElementById('post-text').value = '';
+    removeComposerImg();
+    showToast('✅ Paylaşıldı!');
+  } catch(e) {
+    showToast('Hata: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Paylaş';
+  }
+};
+
+// ── LOAD POSTS ────────────────────────────────────────
+function loadPosts() {
+  if (unsubPosts) unsubPosts();
+  const q = query(collection(db, 'feed_posts'), orderBy('createdAt', 'desc'));
+  unsubPosts = onSnapshot(q, snap => {
+    const now = new Date();
+    const posts = [];
+    snap.forEach(d => {
+      const data = { id: d.id, ...d.data() };
+      const expire = data.expireAt?.toDate?.() || new Date(0);
+      if (expire > now) posts.push(data);
+    });
+    renderPosts(posts);
+  });
+}
+
+// ── RENDER POSTS ──────────────────────────────────────
+function renderPosts(posts) {
+  const container = document.getElementById('posts-container');
+  if (!posts.length) {
+    container.innerHTML = `<div class="empty-feed"><div class="empty-feed-icon">🎨</div><h3>Henüz paylaşım yok</h3><p style="font-size:12px;">İlk tasarımını paylaş, ekipten geri bildirim al!</p></div>`;
+    return;
+  }
+  container.innerHTML = posts.map(p => renderPost(p)).join('');
+}
+
+function renderPost(p) {
+  const now = Date.now();
+  const expire = p.expireAt?.toDate?.()?.getTime() || 0;
+  const remaining = expire - now;
+  const hours = Math.floor(remaining / 3600000);
+  const mins = Math.floor((remaining % 3600000) / 60000);
+  const timeStr = hours > 0 ? `${hours}s ${mins}d sonra silinir` : `${mins}d sonra silinir`;
+  const badgeCls = hours >= 6 ? 'safe' : '';
+  const createdStr = p.createdAt?.toDate?.() ? timeAgo(p.createdAt.toDate()) : '';
+  const liked = (p.likes||[]).includes(currentUser?.uid);
+  const likeCount = (p.likes||[]).length;
+  const commentCount = (p.comments||[]).length;
+  const isOwner = p.userId === currentUser?.uid;
+  const initials = (p.userName||'?')[0].toUpperCase();
+
+  const commentsHtml = (p.comments||[]).map(c => `
+    <div class="comment">
+      <div class="comment-avatar" style="background:${c.userColor||'#999'};">${(c.userName||'?')[0].toUpperCase()}</div>
+      <div class="comment-body">
+        <div class="comment-name">${escHtml(c.userName||'')}</div>
+        <div class="comment-text">${escHtml(c.text||'')}</div>
+        <div class="comment-time">${c.createdAt ? timeAgo(new Date(c.createdAt)) : ''}</div>
+      </div>
+      ${c.userId === currentUser?.uid ? `<button class="comment-del" onclick="deleteComment('${p.id}','${c.id}')">×</button>` : ''}
+    </div>`).join('');
+
+  return `<div class="post-card" id="post-${p.id}">
+    <div class="post-header">
+      <div class="user-avatar" style="background:${p.userColor||'#999'};width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>
+      <div class="post-user-info">
+        <div class="post-username">${escHtml(p.userName||'')}</div>
+        <div class="post-meta">${createdStr} · <span class="expire-badge ${badgeCls}">${timeStr}</span></div>
+      </div>
+      ${isOwner ? `<button class="post-delete" onclick="deletePost('${p.id}','${p.imageUrl||''}')">🗑</button>` : ''}
+    </div>
+    ${p.text ? `<div class="post-text">${escHtml(p.text)}</div>` : ''}
+    ${p.imageUrl ? `<img class="post-img" src="${p.imageUrl}" onclick="openLightbox('${p.imageUrl}')" loading="lazy">` : ''}
+    <div class="post-actions">
+      <button class="action-btn ${liked?'liked':''}" onclick="toggleLike('${p.id}')">
+        <span class="heart-icon">${liked?'❤️':'🤍'}</span> ${likeCount > 0 ? likeCount : ''} Beğen
+      </button>
+      <button class="action-btn" onclick="toggleComments('${p.id}')">
+        💬 ${commentCount > 0 ? commentCount : ''} Yorum
+      </button>
+    </div>
+    <div class="comments-wrap" id="comments-${p.id}">
+      ${commentsHtml}
+      <div class="comment-input-wrap">
+        <div class="comment-avatar" style="background:${getUserColor(currentUser?.uid||'')};width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;">
+          ${(currentUser?.displayName||currentUser?.email||'?')[0].toUpperCase()}
+        </div>
+        <input class="comment-inp" id="cinp-${p.id}" placeholder="Yorum yaz..." onkeydown="if(event.key==='Enter')submitComment('${p.id}')">
+        <button class="comment-send" onclick="submitComment('${p.id}')">↑</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── ACTIONS ───────────────────────────────────────────
+window.toggleLike = async (postId) => {
+  const ref = doc(db, 'feed_posts', postId);
+  const el = document.querySelector(`#post-${postId} .action-btn`);
+  const liked = el?.classList.contains('liked');
+  await updateDoc(ref, { likes: liked ? arrayRemove(currentUser.uid) : arrayUnion(currentUser.uid) });
+};
+
+window.toggleComments = (postId) => {
+  const el = document.getElementById('comments-' + postId);
+  el.classList.toggle('show');
+  if (el.classList.contains('show')) document.getElementById('cinp-' + postId)?.focus();
+};
+
+window.submitComment = async (postId) => {
+  const inp = document.getElementById('cinp-' + postId);
+  const text = inp?.value.trim(); if (!text) return;
+  inp.value = '';
+  const comment = {
+    id: 'c_' + Date.now(),
+    text, userId: currentUser.uid,
+    userName: currentUser.displayName || currentUser.email,
+    userColor: getUserColor(currentUser.uid),
+    createdAt: Date.now()
+  };
+  await updateDoc(doc(db, 'feed_posts', postId), { comments: arrayUnion(comment) });
+};
+
+window.deleteComment = async (postId, commentId) => {
+  const ref = doc(db, 'feed_posts', postId);
+  // Yorum listesinden çıkar
+  const snap = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js').then(m => m.getDoc(ref));
+  const comments = (snap.data()?.comments || []).filter(c => c.id !== commentId);
+  await updateDoc(ref, { comments });
+};
+
+window.deletePost = async (postId, imageUrl) => {
+  if (!confirm('Bu paylaşımı silmek istediğine emin misin?')) return;
+  await deleteDoc(doc(db, 'feed_posts', postId));
+  showToast('Paylaşım silindi.');
+};
+
+// ── EXPIRE CLEANUP ────────────────────────────────────
+async function cleanExpired() {
+  const now = Timestamp.now();
+  const q = query(collection(db, 'feed_posts'), where('expireAt', '<=', now));
+  const { getDocs } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js');
+  const snap = await getDocs(q);
+  snap.forEach(d => deleteDoc(d.ref));
+}
+
+// ── LIGHTBOX ──────────────────────────────────────────
+window.openLightbox = (src) => {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('show');
+};
+window.closeLightbox = () => document.getElementById('lightbox').classList.remove('show');
+
+// ── HELPERS ───────────────────────────────────────────
+function timeAgo(date) {
+  const diff = (Date.now() - date.getTime()) / 1000;
+  if (diff < 60) return 'Az önce';
+  if (diff < 3600) return Math.floor(diff/60) + ' dk önce';
+  if (diff < 86400) return Math.floor(diff/3600) + ' saat önce';
+  return Math.floor(diff/86400) + ' gün önce';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('feed-toast');
+  t.textContent = msg; t.style.opacity = '1';
+  setTimeout(() => t.style.opacity = '0', 2500);
+}
+
+if (localStorage.getItem('twingo_theme') === 'dark') document.body.classList.add('dark');
+</script>
+</body>
+</html>

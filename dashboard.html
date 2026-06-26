@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f5f3; --white: #fff; --gray-50: #fafaf9; --gray-100: #f0f0ee;
+  --gray-200: #e4e4e0; --gray-300: #d0d0cc; --gray-400: #a8a8a4;
+  --gray-500: #717170; --gray-700: #383836; --gray-900: #141413;
+  --accent: #e05c2a; --accent-light: #fff3ee;
+  --green: #16a34a; --green-light: #f0fdf4;
+  --blue: #2563eb; --blue-light: #eff4ff;
+  --yellow: #ca8a04; --yellow-light: #fefce8;
+  --radius-sm: 6px; --radius-md: 10px; --radius-lg: 16px; --radius-xl: 22px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06); --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+}
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--gray-900); min-height: 100vh; visibility: hidden; }
+body.dark { --white: #1e1e1e; --gray-50: #252525; --gray-100: #2e2e2e; --gray-200: #3a3a3a; --gray-400: #767676; --gray-500: #9a9a9a; --gray-700: #d0d0d0; --gray-900: #f0f0f0; --bg: #141414; }
+body.dark header { background: #111; border-color: #2a2a2a; }
+
+header { height: 52px; background: var(--white); border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; padding: 0 20px; gap: 12px; }
+.header-logo { font-size: 14px; font-weight: 600; }
+.header-logo span { color: var(--accent); }
+.header-sep { width: 1px; height: 18px; background: var(--gray-200); }
+.header-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.btn-sm { font-family: inherit; font-size: 11px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--gray-200); background: var(--gray-50); color: var(--gray-500); cursor: pointer; text-decoration: none; }
+.btn-sm:hover { background: var(--gray-100); }
+
+.page { padding: 20px; max-width: 1100px; margin: 0 auto; }
+
+/* Connect State */
+.connect-box {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--radius-xl); padding: 48px;
+  text-align: center; max-width: 440px; margin: 80px auto;
+  box-shadow: var(--shadow-md);
+}
+.connect-icon { font-size: 48px; margin-bottom: 16px; }
+.connect-box h2 { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+.connect-box p { font-size: 13px; color: var(--gray-400); line-height: 1.6; margin-bottom: 24px; }
+.connect-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px; border-radius: var(--radius-xl);
+  background: #f1641e; color: #fff; border: none;
+  font-family: inherit; font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 4px 16px rgba(241,100,30,0.3);
+}
+.connect-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(241,100,30,0.4); }
+.disconnect-btn { font-family: inherit; font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid #fecaca; background: #fef2f2; color: #dc2626; cursor: pointer; }
+
+/* Store selector */
+.store-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+.store-select { font-family: inherit; font-size: 13px; padding: 7px 12px; border: 1px solid var(--gray-200); border-radius: var(--radius-md); background: var(--white); color: var(--gray-900); outline: none; cursor: pointer; }
+.period-btns { display: flex; gap: 4px; margin-left: auto; }
+.period-btn { font-family: inherit; font-size: 11px; padding: 5px 10px; border-radius: var(--radius-sm); border: 1px solid var(--gray-200); background: var(--white); color: var(--gray-500); cursor: pointer; }
+.period-btn.active { background: var(--gray-900); color: #fff; border-color: var(--gray-900); }
+
+/* Stats grid */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+@media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+.stat-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); }
+.stat-label { font-size: 11px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.stat-value { font-size: 24px; font-weight: 700; color: var(--gray-900); }
+.stat-sub { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
+.stat-up { color: var(--green); }
+.stat-down { color: #dc2626; }
+
+/* Charts */
+.charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 20px; }
+@media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+.chart-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); }
+.chart-title { font-size: 13px; font-weight: 600; color: var(--gray-900); margin-bottom: 14px; }
+
+/* Orders table */
+.orders-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); margin-bottom: 20px; }
+.orders-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 10px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.06em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--gray-100); }
+td { font-size: 12px; color: var(--gray-700); padding: 10px; border-bottom: 1px solid var(--gray-100); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--gray-50); }
+.status-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.status-paid { background: var(--green-light); color: var(--green); }
+.status-shipped { background: var(--blue-light); color: var(--blue); }
+.status-completed { background: var(--gray-100); color: var(--gray-500); }
+.status-open { background: var(--yellow-light); color: var(--yellow); }
+
+/* Loading */
+.loading { text-align: center; padding: 48px; color: var(--gray-400); }
+.spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--gray-200); border-top-color: var(--accent); animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-logo">Twingo <span>Dashboard</span></div>
+  <div class="header-sep"></div>
+  <span style="font-size:11px;color:var(--gray-400);" id="shop-name-header"></span>
+  <div class="header-actions">
+    <button id="disconnect-btn" class="disconnect-btn" style="display:none;" onclick="disconnectEtsy()">Etsy Bağlantısını Kes</button>
+    <a href="index.html" class="btn-sm">← Ana Sayfa</a>
+  </div>
+</header>
+
+<div class="page" id="main-page">
+
+  <!-- CONNECT STATE -->
+  <div id="connect-state">
+    <div class="connect-box">
+      <div class="connect-icon">🏪</div>
+      <h2>Etsy Mağazanı Bağla</h2>
+      <p>Satış rakamlarını, siparişlerini ve trend ürünlerini görmek için Etsy hesabına bağlan.</p>
+      <button class="connect-btn" onclick="connectEtsy()">
+        🔗 Etsy ile Bağlan
+      </button>
+      <p style="margin-top:12px;font-size:11px;color:var(--gray-400);">Sadece okuma izni — mağazana dokunmayız.</p>
+    </div>
+  </div>
+
+  <!-- DASHBOARD STATE -->
+  <div id="dashboard-state" style="display:none;">
+
+    <!-- Store bar -->
+    <div class="store-bar">
+      <select class="store-select" id="store-select" onchange="loadDashboard()"></select>
+      <div class="period-btns">
+        <button class="period-btn active" onclick="setPeriod(7, this)">7 Gün</button>
+        <button class="period-btn" onclick="setPeriod(30, this)">30 Gün</button>
+        <button class="period-btn" onclick="setPeriod(90, this)">90 Gün</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-label">Toplam Satış</div><div class="stat-value" id="stat-revenue">-</div><div class="stat-sub" id="stat-revenue-sub"></div></div>
+      <div class="stat-card"><div class="stat-label">Sipariş Sayısı</div><div class="stat-value" id="stat-orders">-</div><div class="stat-sub" id="stat-orders-sub"></div></div>
+      <div class="stat-card"><div class="stat-label">Ortalama Sipariş</div><div class="stat-value" id="stat-avg">-</div><div class="stat-sub"></div></div>
+      <div class="stat-card"><div class="stat-label">Aktif Listing</div><div class="stat-value" id="stat-listings">-</div><div class="stat-sub"></div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">📈 Günlük Satış</div>
+        <canvas id="revenue-chart" height="180"></canvas>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">🏆 En Çok Satan</div>
+        <div id="top-listings"></div>
+      </div>
+    </div>
+
+    <!-- Orders -->
+    <div class="orders-card">
+      <div class="orders-head">
+        <div style="font-size:13px;font-weight:600;">📦 Son Siparişler</div>
+        <div style="font-size:11px;color:var(--gray-400);" id="orders-count"></div>
+      </div>
+      <div id="orders-table-wrap"><div class="loading"><div class="spinner"></div>Yükleniyor...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase + Auth -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
+  authDomain: "twingostudio-cc351.firebaseapp.com",
+  projectId: "twingostudio-cc351",
+  storageBucket: "twingostudio-cc351.firebasestorage.app",
+  messagingSenderId: "236093689838",
+  appId: "1:236093689838:web:b502546fdf61b1cc6288ff"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const ETSY_KEY = 'wk9iauowy21h3dr02jqzouq5';
+// Netlify site URL'ini buraya yaz
+const NETLIFY_URL = window.location.origin;
+const REDIRECT_URI = `${NETLIFY_URL}/etsy-callback.html`;
+const FUNCTION_URL = `${NETLIFY_URL}/.netlify/functions/etsy-auth`;
+const SCOPES = 'transactions_r listings_r shops_rw';
+
+let currentUser = null;
+let etsyToken = null;
+let period = 7;
+let revenueChart = null;
+
+// ── AUTH ───────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  currentUser = user;
+  document.body.style.visibility = 'visible';
+
+  // Etsy token'ı Firebase'den yükle
+  try {
+    const snap = await getDoc(doc(db, 'etsy_tokens', user.uid));
+    if (snap.exists()) {
+      etsyToken = snap.data();
+      await initDashboard();
+    } else {
+      showConnect();
+    }
+  } catch(e) {
+    showConnect();
+  }
+});
+
+// ── OAUTH ──────────────────────────────────────────────
+window.connectEtsy = async () => {
+  // PKCE verifier + challenge oluştur
+  const verifier = generateVerifier();
+  const challenge = await generateChallenge(verifier);
+  sessionStorage.setItem('etsy_verifier', verifier);
+  sessionStorage.setItem('etsy_state', 'twingo_' + Date.now());
+
+  const url = `https://www.etsy.com/oauth/connect?` + new URLSearchParams({
+    response_type: 'code',
+    redirect_uri: REDIRECT_URI,
+    scope: SCOPES,
+    client_id: ETSY_KEY,
+    state: sessionStorage.getItem('etsy_state'),
+    code_challenge: challenge,
+    code_challenge_method: 'S256'
+  });
+  window.location.href = url;
+};
+
+window.disconnectEtsy = async () => {
+  if (!confirm('Etsy bağlantısını kesmek istediğine emin misin?')) return;
+  if (currentUser) {
+    await setDoc(doc(db, 'etsy_tokens', currentUser.uid), {});
+  }
+  etsyToken = null;
+  showConnect();
+};
+
+// OAuth callback handler (etsy-callback.html'den çağrılır)
+window.handleEtsyCallback = async (code, state) => {
+  if (state !== sessionStorage.getItem('etsy_state')) { alert('State mismatch!'); return; }
+  const verifier = sessionStorage.getItem('etsy_verifier');
+  try {
+    const res = await fetch(FUNCTION_URL + '?action=token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, verifier, redirect_uri: REDIRECT_URI, action: 'token' })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    etsyToken = { ...data, createdAt: Date.now() };
+    await setDoc(doc(db, 'etsy_tokens', currentUser.uid), etsyToken);
+    await initDashboard();
+  } catch(e) {
+    alert('Bağlantı hatası: ' + e.message);
+    showConnect();
+  }
+};
+
+// ── API ────────────────────────────────────────────────
+async function etsyAPI(endpoint) {
+  // Token süresi kontrolü (1 saat)
+  if (etsyToken && Date.now() - etsyToken.createdAt > 3500000) {
+    try {
+      const res = await fetch(FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'refresh', refresh_token: etsyToken.refresh_token })
+      });
+      const data = await res.json();
+      etsyToken = { ...etsyToken, ...data, createdAt: Date.now() };
+      await setDoc(doc(db, 'etsy_tokens', currentUser.uid), etsyToken);
+    } catch(e) { console.log('Token refresh failed:', e); }
+  }
+
+  const res = await fetch(FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'api', endpoint, access_token: etsyToken.access_token })
+  });
+  return res.json();
+}
+
+// ── DASHBOARD ──────────────────────────────────────────
+async function initDashboard() {
+  document.getElementById('connect-state').style.display = 'none';
+  document.getElementById('dashboard-state').style.display = 'block';
+  document.getElementById('disconnect-btn').style.display = 'block';
+
+  // Kullanıcı bilgisi
+  try {
+    const me = await etsyAPI('application/openapi-ping');
+    // Mağazaları yükle
+    const shops = await etsyAPI('application/users/me/shops');
+    if (shops.results) {
+      const sel = document.getElementById('store-select');
+      sel.innerHTML = shops.results.map(s =>
+        `<option value="${s.shop_id}">${s.shop_name}</option>`
+      ).join('');
+      document.getElementById('shop-name-header').textContent = shops.results[0]?.shop_name || '';
+      await loadDashboard();
+    }
+  } catch(e) {
+    console.log('Dashboard init error:', e);
+    showConnect();
+  }
+}
+
+window.loadDashboard = async () => {
+  const shopId = document.getElementById('store-select').value;
+  if (!shopId) return;
+  document.getElementById('orders-table-wrap').innerHTML = '<div class="loading"><div class="spinner"></div>Yükleniyor...</div>';
+
+  try {
+    const [receipts, listings] = await Promise.all([
+      etsyAPI(`application/shops/${shopId}/receipts?limit=100&was_paid=true`),
+      etsyAPI(`application/shops/${shopId}/listings/active?limit=25`)
+    ]);
+
+    processData(receipts, listings);
+  } catch(e) {
+    document.getElementById('orders-table-wrap').innerHTML = `<div class="loading">Hata: ${e.message}</div>`;
+  }
+};
+
+function processData(receipts, listings) {
+  const now = Date.now() / 1000;
+  const since = now - (period * 86400);
+  const filtered = (receipts.results || []).filter(r => r.created_timestamp >= since);
+
+  // Stats
+  const revenue = filtered.reduce((s, r) => s + parseFloat(r.grandtotal?.amount || r.total_price || 0), 0);
+  const avg = filtered.length ? revenue / filtered.length : 0;
+
+  document.getElementById('stat-revenue').textContent = '$' + revenue.toFixed(2);
+  document.getElementById('stat-orders').textContent = filtered.length;
+  document.getElementById('stat-avg').textContent = '$' + avg.toFixed(2);
+  document.getElementById('stat-listings').textContent = listings.count || (listings.results?.length || 0);
+  document.getElementById('orders-count').textContent = filtered.length + ' sipariş';
+
+  // Günlük revenue chart
+  buildRevenueChart(filtered);
+
+  // Top listings
+  buildTopListings(filtered);
+
+  // Orders table
+  buildOrdersTable(filtered);
+}
+
+function buildRevenueChart(orders) {
+  const days = [];
+  const revenues = [];
+  for (let i = period - 1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const label = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    const dayStart = new Date(d); dayStart.setHours(0,0,0,0);
+    const dayEnd = new Date(d); dayEnd.setHours(23,59,59,999);
+    const dayRevenue = orders
+      .filter(o => {
+        const t = o.created_timestamp * 1000;
+        return t >= dayStart.getTime() && t <= dayEnd.getTime();
+      })
+      .reduce((s, o) => s + parseFloat(o.grandtotal?.amount || o.total_price || 0), 0);
+    days.push(label); revenues.push(dayRevenue);
+  }
+
+  if (revenueChart) revenueChart.destroy();
+  const ctx = document.getElementById('revenue-chart').getContext('2d');
+  revenueChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: days,
+      datasets: [{
+        label: 'Satış ($)',
+        data: revenues,
+        borderColor: '#e05c2a',
+        backgroundColor: 'rgba(224,92,42,0.08)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 3,
+        pointBackgroundColor: '#e05c2a'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, maxTicksLimit: 7 } },
+        y: { grid: { color: '#f0f0ee' }, ticks: { font: { size: 10 }, callback: v => '$' + v } }
+      }
+    }
+  });
+}
+
+function buildTopListings(orders) {
+  const counts = {};
+  orders.forEach(o => {
+    (o.transactions || []).forEach(t => {
+      const title = t.title || 'Bilinmiyor';
+      counts[title] = (counts[title] || 0) + t.quantity;
+    });
+  });
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const max = sorted[0]?.[1] || 1;
+
+  document.getElementById('top-listings').innerHTML = sorted.length
+    ? sorted.map(([title, qty]) => `
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px;">
+          <span style="color:var(--gray-700);font-weight:500;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${title}</span>
+          <span style="color:var(--gray-500);">${qty} adet</span>
+        </div>
+        <div style="height:6px;background:var(--gray-100);border-radius:3px;overflow:hidden;">
+          <div style="height:100%;width:${Math.round(qty/max*100)}%;background:var(--accent);border-radius:3px;"></div>
+        </div>
+      </div>`).join('')
+    : '<div style="color:var(--gray-400);font-size:12px;padding:12px 0;">Bu dönemde sipariş yok.</div>';
+}
+
+function buildOrdersTable(orders) {
+  const recent = orders.slice(0, 20);
+  if (!recent.length) {
+    document.getElementById('orders-table-wrap').innerHTML = '<div class="loading">Bu dönemde sipariş yok.</div>';
+    return;
+  }
+  const rows = recent.map(o => {
+    const date = new Date(o.created_timestamp * 1000).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    const total = parseFloat(o.grandtotal?.amount || o.total_price || 0).toFixed(2);
+    const status = o.status || 'open';
+    const statusMap = { paid: ['Ödendi','status-paid'], shipped: ['Kargoda','status-shipped'], completed: ['Tamamlandı','status-completed'], open: ['Bekliyor','status-open'] };
+    const [label, cls] = statusMap[status] || ['Bilinmiyor','status-open'];
+    const buyer = o.name || o.buyer_user_id || '-';
+    const items = (o.transactions||[]).length;
+    return `<tr>
+      <td>${date}</td>
+      <td style="font-weight:500;">${buyer}</td>
+      <td>${items} ürün</td>
+      <td style="font-weight:600;color:var(--accent);">$${total}</td>
+      <td><span class="status-badge ${cls}">${label}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('orders-table-wrap').innerHTML = `
+    <table>
+      <thead><tr><th>Tarih</th><th>Alıcı</th><th>Ürünler</th><th>Tutar</th><th>Durum</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+}
+
+// ── HELPERS ────────────────────────────────────────────
+window.setPeriod = (p, btn) => {
+  period = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadDashboard();
+};
+
+function showConnect() {
+  document.getElementById('connect-state').style.display = 'block';
+  document.getElementById('dashboard-state').style.display = 'none';
+  document.getElementById('disconnect-btn').style.display = 'none';
+}
+
+function generateVerifier() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  return btoa(String.fromCharCode(...arr)).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+async function generateChallenge(verifier) {
+  const enc = new TextEncoder();
+  const hash = await crypto.subtle.digest('SHA-256', enc.encode(verifier));
+  return btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
+}
+
+// OAuth callback kontrolü
+if (new URLSearchParams(window.location.search).get('etsy_connected') === '1') {
+  const code = sessionStorage.getItem('etsy_code');
+  const state = sessionStorage.getItem('etsy_callback_state');
+  if (code) {
+    sessionStorage.removeItem('etsy_code');
+    sessionStorage.removeItem('etsy_callback_state');
+    // Auth hazır olunca token exchange yap
+    const checkAuth = setInterval(() => {
+      if (currentUser) {
+        clearInterval(checkAuth);
+        window.handleEtsyCallback(code, state);
+      }
+    }, 200);
+  }
+}
+
+// Tema
+if (localStorage.getItem('twingo_theme') === 'dark') document.body.classList.add('dark');
+</script>
+</body>
+</html>
