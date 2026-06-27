@@ -225,12 +225,33 @@ onAuthStateChanged(auth, async user => {
   currentUser = user;
   document.body.style.visibility = 'visible';
 
-  // Mağazaları Firebase'den yükle
+  // Etsy callback var mı kontrol et
+  const urlP = new URLSearchParams(window.location.search);
+  const isCallback = urlP.get('etsy_connected') === '1';
+  const callbackCode = sessionStorage.getItem('etsy_code');
+  const callbackState = sessionStorage.getItem('etsy_callback_state');
+
+  if (isCallback && callbackCode) {
+    // Callback akışı: önce mevcut mağazaları yükle, sonra yeni mağazayı ekle
+    sessionStorage.removeItem('etsy_code');
+    sessionStorage.removeItem('etsy_callback_state');
+    // URL'i temizle (history.replaceState)
+    window.history.replaceState({}, '', window.location.pathname);
+    try {
+      const snap = await getDoc(doc(db, 'etsy_stores', user.uid));
+      if (snap.exists() && snap.data().stores?.length > 0) {
+        etsyStores = snap.data().stores;
+      }
+    } catch(e) { console.warn('Mevcut mağazalar yüklenemedi:', e); }
+    await window.handleEtsyCallback(callbackCode, callbackState);
+    return;
+  }
+
+  // Normal akış: mağazaları yükle
   try {
     const snap = await getDoc(doc(db, 'etsy_stores', user.uid));
     if (snap.exists() && snap.data().stores?.length > 0) {
       etsyStores = snap.data().stores;
-      // Son seçilen mağazayı hatırla
       const lastShop = localStorage.getItem('twingo_last_shop_' + user.uid);
       const savedStore = lastShop ? etsyStores.find(s => String(s.shopId) === String(lastShop)) : null;
       const activeStore = savedStore || etsyStores[0];
@@ -368,16 +389,17 @@ window.handleEtsyCallback = async (code, state) => {
     const shopId = shopData.shop_id;
     const shopName = shopData.shop_name || `Mağaza ${shopId}`;
 
-    // Mevcut mağazaları yükle ve yeni ekle
-    const storesSnap = await getDoc(doc(db, 'etsy_stores', currentUser.uid));
-    const stores = storesSnap.exists() ? (storesSnap.data().stores || []) : [];
-    // Aynı mağaza varsa güncelle, yoksa ekle
-    const existingIdx = stores.findIndex(s => String(s.shopId) === String(shopId));
+    // Aynı mağaza varsa güncelle, yoksa ekle (etsyStores zaten onAuthStateChanged'de yüklendi)
     const storeEntry = { shopId, shopName, token: newToken };
-    if (existingIdx >= 0) stores[existingIdx] = storeEntry;
-    else stores.push(storeEntry);
-    await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores });
-    etsyStores = stores;
+    const existingIdx = etsyStores.findIndex(s => String(s.shopId) === String(shopId));
+    if (existingIdx >= 0) etsyStores[existingIdx] = storeEntry;
+    else etsyStores.push(storeEntry);
+    await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores });
+    // Yeni eklenen mağazayı aktif yap
+    currentShopId = shopId;
+    etsyToken = newToken;
+    if (currentUser) localStorage.setItem('twingo_last_shop_' + currentUser.uid, String(shopId));
+    showToast('✅ Mağaza başarıyla bağlandı!');
     await initDashboard();
   } catch(e) {
     alert('Bağlantı hatası: ' + e.message);
@@ -633,29 +655,7 @@ async function generateChallenge(verifier) {
   return btoa(String.fromCharCode(...new Uint8Array(hash))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=/g,'');
 }
 
-// OAuth callback kontrolü
-// OAuth callback - hızlı işle
-const urlParams = new URLSearchParams(window.location.search);
-if (urlParams.get('etsy_connected') === '1') {
-  const code = sessionStorage.getItem('etsy_code');
-  const state = sessionStorage.getItem('etsy_callback_state');
-  if (code) {
-    sessionStorage.removeItem('etsy_code');
-    sessionStorage.removeItem('etsy_callback_state');
-    // currentUser hazır olunca hemen işle - max 5 saniye bekle
-    let waited = 0;
-    const checkAuth = setInterval(() => {
-      waited += 100;
-      if (currentUser) {
-        clearInterval(checkAuth);
-        window.handleEtsyCallback(code, state);
-      } else if (waited > 5000) {
-        clearInterval(checkAuth);
-        console.error('Auth timeout');
-      }
-    }, 100);
-  }
-}
+// OAuth callback, onAuthStateChanged içinde işleniyor
 
 // Tema
 function showToast(msg) {
