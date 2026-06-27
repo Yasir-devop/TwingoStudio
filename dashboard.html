@@ -106,7 +106,7 @@ tr:hover td { background: var(--gray-50); }
   <div class="header-sep"></div>
   <span style="font-size:11px;color:var(--gray-400);" id="shop-name-header"></span>
   <div class="header-actions">
-    <button id="disconnect-btn" class="disconnect-btn" style="display:none;" onclick="disconnectEtsy()">Etsy Bağlantısını Kes</button>
+    <button id="disconnect-btn" class="disconnect-btn" style="display:none;" onclick="openManageStores()">⚙️ Mağazaları Yönet</button>
     <a href="index.html" class="btn-sm">← Ana Sayfa</a>
   </div>
 </header>
@@ -267,28 +267,42 @@ window.connectEtsy = async () => {
 };
 
 window.disconnectEtsy = async (shopId) => {
+  // shopId gelmezse aktif mağazayı kes
+  const targetId = shopId || currentShopId;
+  if (!targetId) { showToast('❌ Kesilecek mağaza bulunamadı.'); return; }
   if (!confirm('Bu mağazanın bağlantısını kesmek istediğine emin misin?')) return;
-  
-  // Önce local state'den kaldır
-  etsyStores = etsyStores.filter(s => s.shopId !== shopId);
-  
-  // Anında Firestore'dan güncelle
+
+  // Local state'den kaldır
+  etsyStores = etsyStores.filter(s => s.shopId !== targetId);
+
+  // Firestore'a yaz (boş array olsa bile)
   if (currentUser) {
-    await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores });
+    try {
+      await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores });
+    } catch(e) {
+      console.error('Firestore disconnect error:', e);
+      showToast('❌ Firestore güncelleme hatası: ' + e.message);
+      return;
+    }
   }
 
-  // Son seçilen mağaza buysa localStorage'dan sil
+  // localStorage'dan sil
   const lastKey = 'twingo_last_shop_' + (currentUser?.uid || '');
-  if (localStorage.getItem(lastKey) === shopId) localStorage.removeItem(lastKey);
+  if (localStorage.getItem(lastKey) === targetId) localStorage.removeItem(lastKey);
 
   if (!etsyStores.length) {
-    etsyToken = null; currentShopId = null;
-    closeManageStores(); showConnect();
+    etsyToken = null;
+    currentShopId = null;
+    closeManageStores();
+    showConnect();
   } else {
-    etsyToken = etsyStores[0].token;
-    currentShopId = etsyStores[0].shopId;
+    // Kalan ilk mağazaya geç
+    const next = etsyStores[0];
+    etsyToken = next.token;
+    currentShopId = next.shopId;
+    if (currentUser) localStorage.setItem(lastKey, currentShopId);
+    closeManageStores();
     await initDashboard();
-    renderManageStores();
   }
   showToast('✅ Mağaza bağlantısı kesildi.');
 };
@@ -371,7 +385,7 @@ window.handleEtsyCallback = async (code, state) => {
 
 // ── API ────────────────────────────────────────────────
 async function etsyAPI(endpoint) {
-  // Token süresi kontrolü (1 saat)
+  // Token süresi kontrolü (~58 dk)
   if (etsyToken && Date.now() - etsyToken.createdAt > 3500000) {
     try {
       const res = await fetch(FUNCTION_URL, {
@@ -380,8 +394,19 @@ async function etsyAPI(endpoint) {
         body: JSON.stringify({ action: 'refresh', refresh_token: etsyToken.refresh_token })
       });
       const data = await res.json();
-      etsyToken = { ...etsyToken, ...data, createdAt: Date.now() };
-      } catch(e) { console.log('Token refresh failed:', e); }
+      if (!data.error) {
+        etsyToken = { ...etsyToken, ...data, createdAt: Date.now() };
+        // Güncel token'ı Firestore'a da kaydet
+        if (currentUser && currentShopId) {
+          const storeIdx = etsyStores.findIndex(s => s.shopId === currentShopId);
+          if (storeIdx >= 0) {
+            etsyStores[storeIdx].token = etsyToken;
+            setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores })
+              .catch(e => console.warn('Token refresh Firestore sync failed:', e));
+          }
+        }
+      }
+    } catch(e) { console.warn('Token refresh failed:', e); }
   }
 
   const res = await fetch(FUNCTION_URL, {
