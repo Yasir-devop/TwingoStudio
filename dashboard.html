@@ -309,16 +309,23 @@ async function initDashboard() {
 
   // Kullanıcı bilgisi
   try {
-    const me = await etsyAPI('application/openapi-ping');
-    // Mağazaları yükle
-    const shops = await etsyAPI('application/users/me/shops');
-    if (shops.results) {
+    // Önce kullanıcıyı al
+    const me = await etsyAPI('application/users/me');
+    console.log('Me:', me);
+    const userId = me.user_id;
+    if (!userId) throw new Error('User ID alınamadı');
+
+    // Kullanıcının mağazasını al
+    const shop = await etsyAPI(`application/users/${userId}/shops`);
+    console.log('Shop:', shop);
+
+    if (shop && shop.shop_id) {
       const sel = document.getElementById('store-select');
-      sel.innerHTML = shops.results.map(s =>
-        `<option value="${s.shop_id}">${s.shop_name}</option>`
-      ).join('');
-      document.getElementById('shop-name-header').textContent = shops.results[0]?.shop_name || '';
+      sel.innerHTML = `<option value="${shop.shop_id}">${shop.shop_name}</option>`;
+      document.getElementById('shop-name-header').textContent = shop.shop_name || '';
       await loadDashboard();
+    } else {
+      throw new Error('Mağaza bulunamadı');
     }
   } catch(e) {
     console.log('Dashboard init error:', e);
@@ -333,12 +340,14 @@ window.loadDashboard = async () => {
 
   try {
     const [receipts, listings] = await Promise.all([
-      etsyAPI(`application/shops/${shopId}/receipts?limit=100&was_paid=true`),
-      etsyAPI(`application/shops/${shopId}/listings/active?limit=25`)
+      etsyAPI(`application/shops/${shopId}/receipts?limit=100&was_paid=true&sort_on=created&sort_order=desc`),
+      etsyAPI(`application/shops/${shopId}/listings/active?limit=25&sort_on=created&sort_order=desc`)
     ]);
-
+    console.log('Receipts:', receipts);
+    console.log('Listings:', listings);
     processData(receipts, listings);
   } catch(e) {
+    console.error('loadDashboard error:', e);
     document.getElementById('orders-table-wrap').innerHTML = `<div class="loading">Hata: ${e.message}</div>`;
   }
 };

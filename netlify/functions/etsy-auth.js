@@ -68,8 +68,9 @@ exports.handler = async (event) => {
     try {
       const response = await fetch(`https://openapi.etsy.com/v3/${endpoint}`, {
         headers: {
-          'x-api-key': ETSY_KEY,
-          'Authorization': `Bearer ${access_token}`
+          'x-api-key': `${ETSY_KEY}:${ETSY_SECRET}`,
+          'Authorization': `Bearer ${access_token}`,
+          'Content-Type': 'application/json'
         }
       });
       const data = await response.json();
