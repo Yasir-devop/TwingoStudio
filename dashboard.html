@@ -268,10 +268,19 @@ window.connectEtsy = async () => {
 
 window.disconnectEtsy = async (shopId) => {
   if (!confirm('Bu mağazanın bağlantısını kesmek istediğine emin misin?')) return;
+  
+  // Önce local state'den kaldır
   etsyStores = etsyStores.filter(s => s.shopId !== shopId);
+  
+  // Anında Firestore'dan güncelle
   if (currentUser) {
     await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores });
   }
+
+  // Son seçilen mağaza buysa localStorage'dan sil
+  const lastKey = 'twingo_last_shop_' + (currentUser?.uid || '');
+  if (localStorage.getItem(lastKey) === shopId) localStorage.removeItem(lastKey);
+
   if (!etsyStores.length) {
     etsyToken = null; currentShopId = null;
     closeManageStores(); showConnect();
@@ -281,6 +290,7 @@ window.disconnectEtsy = async (shopId) => {
     await initDashboard();
     renderManageStores();
   }
+  showToast('✅ Mağaza bağlantısı kesildi.');
 };
 
 window.openManageStores = () => {
@@ -621,6 +631,18 @@ if (urlParams.get('etsy_connected') === '1') {
 }
 
 // Tema
+function showToast(msg) {
+  let t = document.getElementById('dash-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'dash-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--gray-900);color:#fff;font-size:12px;font-weight:500;padding:8px 16px;border-radius:20px;box-shadow:var(--shadow-md);z-index:9999;opacity:0;transition:opacity 0.2s;pointer-events:none;white-space:nowrap;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg; t.style.opacity = '1';
+  setTimeout(() => t.style.opacity = '0', 2500);
+}
+
 if (localStorage.getItem('twingo_theme') === 'dark') document.body.classList.add('dark');
 </script>
 </body>
