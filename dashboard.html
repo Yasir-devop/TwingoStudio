@@ -232,7 +232,7 @@ onAuthStateChanged(auth, async user => {
       etsyStores = snap.data().stores;
       // Son seçilen mağazayı hatırla
       const lastShop = localStorage.getItem('twingo_last_shop_' + user.uid);
-      const savedStore = lastShop ? etsyStores.find(s => s.shopId === lastShop) : null;
+      const savedStore = lastShop ? etsyStores.find(s => String(s.shopId) === String(lastShop)) : null;
       const activeStore = savedStore || etsyStores[0];
       etsyToken = activeStore.token;
       currentShopId = activeStore.shopId;
@@ -268,17 +268,19 @@ window.connectEtsy = async () => {
 
 window.disconnectEtsy = async (shopId) => {
   // shopId gelmezse aktif mağazayı kes
-  const targetId = shopId || currentShopId;
+  const targetId = String(shopId || currentShopId);
   if (!targetId) { showToast('❌ Kesilecek mağaza bulunamadı.'); return; }
   if (!confirm('Bu mağazanın bağlantısını kesmek istediğine emin misin?')) return;
 
   // Local state'den kaldır
-  etsyStores = etsyStores.filter(s => s.shopId !== targetId);
+  etsyStores = etsyStores.filter(s => String(s.shopId) !== String(targetId));
 
   // Firestore'a yaz (boş array olsa bile)
   if (currentUser) {
     try {
+      console.log('[disconnect] Firestore yazılıyor, kalan mağaza sayısı:', etsyStores.length);
       await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores });
+      console.log('[disconnect] Firestore yazıldı ✅');
     } catch(e) {
       console.error('Firestore disconnect error:', e);
       showToast('❌ Firestore güncelleme hatası: ' + e.message);
@@ -288,7 +290,7 @@ window.disconnectEtsy = async (shopId) => {
 
   // localStorage'dan sil
   const lastKey = 'twingo_last_shop_' + (currentUser?.uid || '');
-  if (localStorage.getItem(lastKey) === targetId) localStorage.removeItem(lastKey);
+  if (localStorage.getItem(lastKey) === String(targetId)) localStorage.removeItem(lastKey);
 
   if (!etsyStores.length) {
     etsyToken = null;
@@ -370,7 +372,7 @@ window.handleEtsyCallback = async (code, state) => {
     const storesSnap = await getDoc(doc(db, 'etsy_stores', currentUser.uid));
     const stores = storesSnap.exists() ? (storesSnap.data().stores || []) : [];
     // Aynı mağaza varsa güncelle, yoksa ekle
-    const existingIdx = stores.findIndex(s => s.shopId === shopId);
+    const existingIdx = stores.findIndex(s => String(s.shopId) === String(shopId));
     const storeEntry = { shopId, shopName, token: newToken };
     if (existingIdx >= 0) stores[existingIdx] = storeEntry;
     else stores.push(storeEntry);
@@ -398,7 +400,7 @@ async function etsyAPI(endpoint) {
         etsyToken = { ...etsyToken, ...data, createdAt: Date.now() };
         // Güncel token'ı Firestore'a da kaydet
         if (currentUser && currentShopId) {
-          const storeIdx = etsyStores.findIndex(s => s.shopId === currentShopId);
+          const storeIdx = etsyStores.findIndex(s => String(s.shopId) === String(currentShopId));
           if (storeIdx >= 0) {
             etsyStores[storeIdx].token = etsyToken;
             setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores })
@@ -430,11 +432,11 @@ async function initDashboard() {
     // Dropdown'ı doldur
     const sel = document.getElementById('store-select');
     sel.innerHTML = etsyStores.map(s =>
-      `<option value="${s.shopId}" ${s.shopId === currentShopId ? 'selected' : ''}>${s.shopName}</option>`
+      `<option value="${s.shopId}" ${String(s.shopId) === String(currentShopId) ? 'selected' : ''}>${s.shopName}</option>`
     ).join('');
 
     document.getElementById('shop-name-header').textContent =
-      etsyStores.find(s => s.shopId === currentShopId)?.shopName || '';
+      etsyStores.find(s => String(s.shopId) === String(currentShopId))?.shopName || '';
 
     document.getElementById('connect-state').style.display = 'none';
     document.getElementById('dashboard-state').style.display = 'block';
@@ -450,7 +452,7 @@ async function initDashboard() {
 window.switchStore = async () => {
   const sel = document.getElementById('store-select');
   currentShopId = sel.value;
-  const store = etsyStores.find(s => s.shopId === currentShopId);
+  const store = etsyStores.find(s => String(s.shopId) === String(currentShopId));
   if (store) {
     etsyToken = store.token;
     document.getElementById('shop-name-header').textContent = store.shopName;
