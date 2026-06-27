@@ -1,8 +1,8 @@
 // Netlify Function: Etsy OAuth2 Token Exchange
 // Bu dosya: netlify/functions/etsy-auth.js olarak yükle
 
-const ETSY_KEY = 'wk9iauowy21h3dr02jqzouq5';
-const ETSY_SECRET = 'mdvfi7w6yg';
+const ETSY_KEY = 'z8vhgq1wdi92trm3t24f2g92';
+const ETSY_SECRET = 'vixpjw50mh';
 
 exports.handler = async (event) => {
   const headers = {
