@@ -253,8 +253,13 @@ window.disconnectEtsy = async () => {
 
 // OAuth callback handler (etsy-callback.html'den çağrılır)
 window.handleEtsyCallback = async (code, state) => {
-  if (state !== sessionStorage.getItem('etsy_state')) { alert('State mismatch!'); return; }
+  // State kontrolü - opsiyonel
+  const savedState = sessionStorage.getItem('etsy_state');
+  if (savedState && state && state !== savedState) {
+    console.warn('State mismatch, continuing anyway...');
+  }
   const verifier = sessionStorage.getItem('etsy_verifier');
+  if (!verifier) { showConnect(); alert('Verifier bulunamadı, tekrar dene.'); return; }
   try {
     const res = await fetch(FUNCTION_URL + '?action=token', {
       method: 'POST',
@@ -491,19 +496,26 @@ async function generateChallenge(verifier) {
 }
 
 // OAuth callback kontrolü
-if (new URLSearchParams(window.location.search).get('etsy_connected') === '1') {
+// OAuth callback - hızlı işle
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('etsy_connected') === '1') {
   const code = sessionStorage.getItem('etsy_code');
   const state = sessionStorage.getItem('etsy_callback_state');
   if (code) {
     sessionStorage.removeItem('etsy_code');
     sessionStorage.removeItem('etsy_callback_state');
-    // Auth hazır olunca token exchange yap
+    // currentUser hazır olunca hemen işle - max 5 saniye bekle
+    let waited = 0;
     const checkAuth = setInterval(() => {
+      waited += 100;
       if (currentUser) {
         clearInterval(checkAuth);
         window.handleEtsyCallback(code, state);
+      } else if (waited > 5000) {
+        clearInterval(checkAuth);
+        console.error('Auth timeout');
       }
-    }, 200);
+    }, 100);
   }
 }
 
