@@ -230,13 +230,18 @@ onAuthStateChanged(auth, async user => {
     const snap = await getDoc(doc(db, 'etsy_stores', user.uid));
     if (snap.exists() && snap.data().stores?.length > 0) {
       etsyStores = snap.data().stores;
-      etsyToken = etsyStores[0].token; // İlk mağaza token'ı
-      currentShopId = etsyStores[0].shopId;
+      // Son seçilen mağazayı hatırla
+      const lastShop = localStorage.getItem('twingo_last_shop_' + user.uid);
+      const savedStore = lastShop ? etsyStores.find(s => s.shopId === lastShop) : null;
+      const activeStore = savedStore || etsyStores[0];
+      etsyToken = activeStore.token;
+      currentShopId = activeStore.shopId;
       await initDashboard();
     } else {
       showConnect();
     }
   } catch(e) {
+    console.error('Store load error:', e);
     showConnect();
   }
 });
@@ -366,8 +371,7 @@ async function etsyAPI(endpoint) {
       });
       const data = await res.json();
       etsyToken = { ...etsyToken, ...data, createdAt: Date.now() };
-      await setDoc(doc(db, 'etsy_tokens', currentUser.uid), etsyToken);
-    } catch(e) { console.log('Token refresh failed:', e); }
+      } catch(e) { console.log('Token refresh failed:', e); }
   }
 
   const res = await fetch(FUNCTION_URL, {
@@ -415,6 +419,8 @@ window.switchStore = async () => {
   if (store) {
     etsyToken = store.token;
     document.getElementById('shop-name-header').textContent = store.shopName;
+    // Son seçilen mağazayı hatırla
+    if (currentUser) localStorage.setItem('twingo_last_shop_' + currentUser.uid, currentShopId);
     await loadDashboard();
   }
 };
