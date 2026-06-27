@@ -135,17 +135,17 @@ tr:hover td { background: var(--gray-50); }
       <button onclick="connectEtsy()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;border:1px dashed var(--accent);background:var(--accent-light);color:var(--accent);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Mağaza Ekle</button>
       <button onclick="openManageStores()" style="padding:7px 12px;border-radius:20px;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-500);font-family:inherit;font-size:11px;cursor:pointer;">⚙️ Yönet</button>
       <div class="period-btns">
-        <button class="period-btn active" onclick="setPeriod(7, this)">7 Gün</button>
-        <button class="period-btn" onclick="setPeriod(30, this)">30 Gün</button>
+        <button class="period-btn" onclick="setPeriod(7, this)">7 Gün</button>
+        <button class="period-btn active" onclick="setPeriod(30, this)">30 Gün</button>
         <button class="period-btn" onclick="setPeriod(90, this)">90 Gün</button>
       </div>
     </div>
 
     <!-- Stats -->
     <div class="stats-grid" id="stats-grid">
-      <div class="stat-card"><div class="stat-label">Toplam Satış</div><div class="stat-value" id="stat-revenue">-</div><div class="stat-sub" id="stat-revenue-sub"></div></div>
-      <div class="stat-card"><div class="stat-label">Sipariş Sayısı</div><div class="stat-value" id="stat-orders">-</div><div class="stat-sub" id="stat-orders-sub"></div></div>
-      <div class="stat-card"><div class="stat-label">Ortalama Sipariş</div><div class="stat-value" id="stat-avg">-</div><div class="stat-sub"></div></div>
+      <div class="stat-card"><div class="stat-label">Toplam Sipariş</div><div class="stat-value" id="stat-revenue">-</div><div class="stat-sub" id="stat-revenue-sub"></div></div>
+      <div class="stat-card"><div class="stat-label">Toplam Gelir</div><div class="stat-value" id="stat-orders">-</div><div class="stat-sub" id="stat-orders-sub"></div></div>
+      <div class="stat-card"><div class="stat-label">Günlük Ort. Sipariş</div><div class="stat-value" id="stat-avg">-</div><div class="stat-sub" id="stat-avg-sub"></div></div>
       <div class="stat-card"><div class="stat-label">Aktif Listing</div><div class="stat-value" id="stat-listings">-</div><div class="stat-sub"></div></div>
     </div>
 
@@ -161,14 +161,7 @@ tr:hover td { background: var(--gray-50); }
       </div>
     </div>
 
-    <!-- Orders -->
-    <div class="orders-card">
-      <div class="orders-head">
-        <div style="font-size:13px;font-weight:600;">📦 Son Siparişler</div>
-        <div style="font-size:11px;color:var(--gray-400);" id="orders-count"></div>
-      </div>
-      <div id="orders-table-wrap"><div class="loading"><div class="spinner"></div>Yükleniyor...</div></div>
-    </div>
+
 
   </div>
 </div>
@@ -216,7 +209,7 @@ let currentUser = null;
 let etsyToken = null;
 let etsyStores = []; // Tüm bağlı mağazalar
 let currentShopId = null;
-let period = 7;
+let period = 30;
 let revenueChart = null;
 
 // ── AUTH ───────────────────────────────────────────────
@@ -487,19 +480,15 @@ window.switchStore = async () => {
 window.loadDashboard = async () => {
   const shopId = currentShopId || document.getElementById('store-select').value;
   if (!shopId) return;
-  document.getElementById('orders-table-wrap').innerHTML = '<div class="loading"><div class="spinner"></div>Yükleniyor...</div>';
-
   try {
     const [receipts, listings] = await Promise.all([
       etsyAPI(`application/shops/${shopId}/receipts?limit=100&was_paid=true&sort_on=created&sort_order=desc`),
       etsyAPI(`application/shops/${shopId}/listings/active?limit=25&sort_on=created&sort_order=desc`)
     ]);
-    console.log('Receipts:', receipts);
-    console.log('Listings:', listings);
     processData(receipts, listings);
   } catch(e) {
     console.error('loadDashboard error:', e);
-    document.getElementById('orders-table-wrap').innerHTML = `<div class="loading">Hata: ${e.message}</div>`;
+    showToast('❌ Veri yükleme hatası: ' + e.message);
   }
 };
 
@@ -509,14 +498,18 @@ function processData(receipts, listings) {
   const filtered = (receipts.results || []).filter(r => r.created_timestamp >= since);
 
   // Stats
-  const revenue = filtered.reduce((s, r) => s + parseFloat(r.grandtotal?.amount || r.total_price || 0), 0);
-  const avg = filtered.length ? revenue / filtered.length : 0;
+  const totalOrders = filtered.length;
+  const dailyAvg = (totalOrders / period).toFixed(1);
 
-  document.getElementById('stat-revenue').textContent = '$' + revenue.toFixed(2);
-  document.getElementById('stat-orders').textContent = filtered.length;
-  document.getElementById('stat-avg').textContent = '$' + avg.toFixed(2);
+  const revenue = filtered.reduce((s, r) => s + parseFloat(r.grandtotal?.amount || r.total_price || 0), 0);
+
+  document.getElementById('stat-revenue').textContent = totalOrders + ' adet';
+  document.getElementById('stat-revenue-sub').textContent = period + ' günlük toplam';
+  document.getElementById('stat-orders').textContent = '$' + revenue.toFixed(0);
+  document.getElementById('stat-orders-sub').textContent = period + ' günlük';
+  document.getElementById('stat-avg').textContent = dailyAvg;
+  document.getElementById('stat-avg-sub').textContent = 'sipariş / gün';
   document.getElementById('stat-listings').textContent = listings.count || (listings.results?.length || 0);
-  document.getElementById('orders-count').textContent = filtered.length + ' sipariş';
 
   // Günlük revenue chart
   buildRevenueChart(filtered);
@@ -524,8 +517,7 @@ function processData(receipts, listings) {
   // Top listings
   buildTopListings(filtered);
 
-  // Orders table
-  buildOrdersTable(filtered);
+
 }
 
 function buildRevenueChart(orders) {
@@ -599,35 +591,6 @@ function buildTopListings(orders) {
     : '<div style="color:var(--gray-400);font-size:12px;padding:12px 0;">Bu dönemde sipariş yok.</div>';
 }
 
-function buildOrdersTable(orders) {
-  const recent = orders.slice(0, 20);
-  if (!recent.length) {
-    document.getElementById('orders-table-wrap').innerHTML = '<div class="loading">Bu dönemde sipariş yok.</div>';
-    return;
-  }
-  const rows = recent.map(o => {
-    const date = new Date(o.created_timestamp * 1000).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-    const total = parseFloat(o.grandtotal?.amount || o.total_price || 0).toFixed(2);
-    const status = o.status || 'open';
-    const statusMap = { paid: ['Ödendi','status-paid'], shipped: ['Kargoda','status-shipped'], completed: ['Tamamlandı','status-completed'], open: ['Bekliyor','status-open'] };
-    const [label, cls] = statusMap[status] || ['Bilinmiyor','status-open'];
-    const buyer = o.name || o.buyer_user_id || '-';
-    const items = (o.transactions||[]).length;
-    return `<tr>
-      <td>${date}</td>
-      <td style="font-weight:500;">${buyer}</td>
-      <td>${items} ürün</td>
-      <td style="font-weight:600;color:var(--accent);">$${total}</td>
-      <td><span class="status-badge ${cls}">${label}</span></td>
-    </tr>`;
-  }).join('');
-
-  document.getElementById('orders-table-wrap').innerHTML = `
-    <table>
-      <thead><tr><th>Tarih</th><th>Alıcı</th><th>Ürünler</th><th>Tutar</th><th>Durum</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
-}
 
 // ── HELPERS ────────────────────────────────────────────
 window.setPeriod = (p, btn) => {
