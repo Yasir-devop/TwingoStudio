@@ -118,7 +118,7 @@ tr:hover td { background: var(--gray-50); }
     <div class="connect-box">
       <div class="connect-icon">🏪</div>
       <h2>Etsy Mağazanı Bağla</h2>
-      <p>Satış rakamlarını, siparişlerini ve trend ürünlerini görmek için Etsy hesabına bağlan.</p>
+      <p>Satış rakamlarını, siparişlerini ve trend ürünlerini görmek için Etsy hesabına bağlan. Birden fazla mağaza ekleyebilirsin.</p>
       <button class="connect-btn" onclick="connectEtsy()">
         🔗 Etsy ile Bağlan
       </button>
@@ -131,7 +131,9 @@ tr:hover td { background: var(--gray-50); }
 
     <!-- Store bar -->
     <div class="store-bar">
-      <select class="store-select" id="store-select" onchange="loadDashboard()"></select>
+      <select class="store-select" id="store-select" onchange="switchStore()"></select>
+      <button onclick="connectEtsy()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;border:1px dashed var(--accent);background:var(--accent-light);color:var(--accent);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Mağaza Ekle</button>
+      <button onclick="openManageStores()" style="padding:7px 12px;border-radius:20px;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-500);font-family:inherit;font-size:11px;cursor:pointer;">⚙️ Yönet</button>
       <div class="period-btns">
         <button class="period-btn active" onclick="setPeriod(7, this)">7 Gün</button>
         <button class="period-btn" onclick="setPeriod(30, this)">30 Gün</button>
@@ -171,6 +173,19 @@ tr:hover td { background: var(--gray-50); }
   </div>
 </div>
 
+
+<!-- MANAGE STORES MODAL -->
+<div id="manage-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(3px);">
+  <div style="background:var(--white);border-radius:18px;box-shadow:var(--shadow-lg);padding:24px;width:420px;max-width:92vw;display:flex;flex-direction:column;gap:14px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:16px;font-weight:700;">🏪 Bağlı Mağazalar</div>
+      <button onclick="closeManageStores()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--gray-400);">×</button>
+    </div>
+    <div id="manage-stores-list" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;"></div>
+    <button onclick="connectEtsy();closeManageStores();" style="width:100%;padding:11px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">+ Yeni Mağaza Bağla</button>
+  </div>
+</div>
+
 <!-- Firebase + Auth -->
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
@@ -199,6 +214,8 @@ const SCOPES = 'transactions_r listings_r shops_r';
 
 let currentUser = null;
 let etsyToken = null;
+let etsyStores = []; // Tüm bağlı mağazalar
+let currentShopId = null;
 let period = 7;
 let revenueChart = null;
 
@@ -208,11 +225,13 @@ onAuthStateChanged(auth, async user => {
   currentUser = user;
   document.body.style.visibility = 'visible';
 
-  // Etsy token'ı Firebase'den yükle
+  // Mağazaları Firebase'den yükle
   try {
-    const snap = await getDoc(doc(db, 'etsy_tokens', user.uid));
-    if (snap.exists()) {
-      etsyToken = snap.data();
+    const snap = await getDoc(doc(db, 'etsy_stores', user.uid));
+    if (snap.exists() && snap.data().stores?.length > 0) {
+      etsyStores = snap.data().stores;
+      etsyToken = etsyStores[0].token; // İlk mağaza token'ı
+      currentShopId = etsyStores[0].shopId;
       await initDashboard();
     } else {
       showConnect();
@@ -242,14 +261,46 @@ window.connectEtsy = async () => {
   window.location.href = url;
 };
 
-window.disconnectEtsy = async () => {
-  if (!confirm('Etsy bağlantısını kesmek istediğine emin misin?')) return;
+window.disconnectEtsy = async (shopId) => {
+  if (!confirm('Bu mağazanın bağlantısını kesmek istediğine emin misin?')) return;
+  etsyStores = etsyStores.filter(s => s.shopId !== shopId);
   if (currentUser) {
-    await setDoc(doc(db, 'etsy_tokens', currentUser.uid), {});
+    await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores });
   }
-  etsyToken = null;
-  showConnect();
+  if (!etsyStores.length) {
+    etsyToken = null; currentShopId = null;
+    closeManageStores(); showConnect();
+  } else {
+    etsyToken = etsyStores[0].token;
+    currentShopId = etsyStores[0].shopId;
+    await initDashboard();
+    renderManageStores();
+  }
 };
+
+window.openManageStores = () => {
+  renderManageStores();
+  document.getElementById('manage-modal').style.display = 'flex';
+};
+window.closeManageStores = () => {
+  document.getElementById('manage-modal').style.display = 'none';
+};
+function renderManageStores() {
+  const list = document.getElementById('manage-stores-list');
+  if (!etsyStores.length) {
+    list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--gray-400);font-size:12px;">Henüz mağaza yok</div>';
+    return;
+  }
+  list.innerHTML = etsyStores.map(s => `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:10px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:#f1641e;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🏪</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--gray-900);">${s.shopName}</div>
+        <div style="font-size:11px;color:var(--gray-400);">ID: ${s.shopId}</div>
+      </div>
+      <button onclick="disconnectEtsy('${s.shopId}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;cursor:pointer;font-family:inherit;">Bağlantıyı Kes</button>
+    </div>`).join('');
+}
 
 // OAuth callback handler (etsy-callback.html'den çağrılır)
 window.handleEtsyCallback = async (code, state) => {
@@ -268,8 +319,34 @@ window.handleEtsyCallback = async (code, state) => {
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    etsyToken = { ...data, createdAt: Date.now() };
-    await setDoc(doc(db, 'etsy_tokens', currentUser.uid), etsyToken);
+    const newToken = { ...data, createdAt: Date.now() };
+    // Mağaza bilgisini al
+    const meRes = await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'api', endpoint: 'application/users/me', access_token: newToken.access_token })
+    });
+    const meData = await meRes.json();
+    const userId = meData.user_id;
+    const shopRes = await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'api', endpoint: `application/users/${userId}/shops`, access_token: newToken.access_token })
+    });
+    const shopData = await shopRes.json();
+    const shopId = shopData.shop_id;
+    const shopName = shopData.shop_name || `Mağaza ${shopId}`;
+
+    // Mevcut mağazaları yükle ve yeni ekle
+    const storesSnap = await getDoc(doc(db, 'etsy_stores', currentUser.uid));
+    const stores = storesSnap.exists() ? (storesSnap.data().stores || []) : [];
+    // Aynı mağaza varsa güncelle, yoksa ekle
+    const existingIdx = stores.findIndex(s => s.shopId === shopId);
+    const storeEntry = { shopId, shopName, token: newToken };
+    if (existingIdx >= 0) stores[existingIdx] = storeEntry;
+    else stores.push(storeEntry);
+    await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores });
+    etsyStores = stores;
     await initDashboard();
   } catch(e) {
     alert('Bağlantı hatası: ' + e.message);
@@ -309,32 +386,41 @@ async function initDashboard() {
 
   // Kullanıcı bilgisi
   try {
-    // Önce kullanıcıyı al
-    const me = await etsyAPI('application/users/me');
-    console.log('Me:', me);
-    const userId = me.user_id;
-    if (!userId) throw new Error('User ID alınamadı');
+    if (!etsyStores.length) { showConnect(); return; }
 
-    // Kullanıcının mağazasını al
-    const shop = await etsyAPI(`application/users/${userId}/shops`);
-    console.log('Shop:', shop);
+    // Dropdown'ı doldur
+    const sel = document.getElementById('store-select');
+    sel.innerHTML = etsyStores.map(s =>
+      `<option value="${s.shopId}" ${s.shopId === currentShopId ? 'selected' : ''}>${s.shopName}</option>`
+    ).join('');
 
-    if (shop && shop.shop_id) {
-      const sel = document.getElementById('store-select');
-      sel.innerHTML = `<option value="${shop.shop_id}">${shop.shop_name}</option>`;
-      document.getElementById('shop-name-header').textContent = shop.shop_name || '';
-      await loadDashboard();
-    } else {
-      throw new Error('Mağaza bulunamadı');
-    }
+    document.getElementById('shop-name-header').textContent =
+      etsyStores.find(s => s.shopId === currentShopId)?.shopName || '';
+
+    document.getElementById('connect-state').style.display = 'none';
+    document.getElementById('dashboard-state').style.display = 'block';
+    document.getElementById('disconnect-btn').style.display = 'none'; // Artık manage modal'dan
+
+    await loadDashboard();
   } catch(e) {
     console.log('Dashboard init error:', e);
     showConnect();
   }
 }
 
+window.switchStore = async () => {
+  const sel = document.getElementById('store-select');
+  currentShopId = sel.value;
+  const store = etsyStores.find(s => s.shopId === currentShopId);
+  if (store) {
+    etsyToken = store.token;
+    document.getElementById('shop-name-header').textContent = store.shopName;
+    await loadDashboard();
+  }
+};
+
 window.loadDashboard = async () => {
-  const shopId = document.getElementById('store-select').value;
+  const shopId = currentShopId || document.getElementById('store-select').value;
   if (!shopId) return;
   document.getElementById('orders-table-wrap').innerHTML = '<div class="loading"><div class="spinner"></div>Yükleniyor...</div>';
 
