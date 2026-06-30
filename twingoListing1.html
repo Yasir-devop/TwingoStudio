@@ -163,30 +163,9 @@ select.inp { appearance: none; background-image: url("data:image/svg+xml,%3Csvg 
       <div class="field">
         <div class="label">Etsy Kategorisi</div>
         <select class="inp" id="category-inp">
-          <option value="">Kategori seç...</option>
-          <option value="69150946">Clothing — T-Shirts & Tops</option>
-          <option value="69153111">Clothing — Sweatshirts & Hoodies</option>
-          <option value="69150390">Clothing — Dresses</option>
-          <option value="69150956">Clothing — Pants & Leggings</option>
-          <option value="69150948">Clothing — Jackets & Coats</option>
-          <option value="69150952">Clothing — Shorts</option>
-          <option value="69153066">Accessories — Hats & Caps</option>
-          <option value="69153069">Accessories — Bags & Purses</option>
-          <option value="69153073">Accessories — Scarves & Wraps</option>
-          <option value="68927279">Art & Collectibles — Prints</option>
-          <option value="68887042">Art & Collectibles — Paintings</option>
-          <option value="69150397">Home & Living — Mugs & Cups</option>
-          <option value="69150400">Home & Living — Pillows & Covers</option>
-          <option value="69150403">Home & Living — Wall Decor</option>
-          <option value="69150406">Jewelry — Necklaces</option>
-          <option value="69150409">Jewelry — Earrings</option>
-          <option value="69150412">Jewelry — Bracelets</option>
-          <option value="69150415">Jewelry — Rings</option>
-          <option value="69153120">Stickers</option>
-          <option value="69153123">Cards & Card Holders</option>
-          <option value="custom">Özel ID gir...</option>
+          <option value="">Kategori yükleniyor...</option>
         </select>
-        <input class="inp" type="text" id="category-custom" placeholder="Kategori ID (örn: 69150946)" style="display:none;margin-top:6px;">
+        <input class="inp" type="text" id="category-search" placeholder="Ara... (örn: shirt, mug)" style="margin-top:6px;" oninput="filterCategories(this.value)">
       </div>
       <div class="field">
         <div class="label">Shipping Profile</div>
@@ -282,6 +261,7 @@ const IMGBB_KEY = 'cad6fea711a7a4ffc3d99ffc0727d6aa';
 onAuthStateChanged(auth, async user => {
   if (!user) { window.location.href = 'login.html'; return; }
   document.body.style.visibility = 'visible';
+  loadTaxonomies();
   // Mağazaları yükle
   try {
     const snap = await getDoc(doc(db, 'etsy_stores', 'shared'));
@@ -295,6 +275,48 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('stores-list').innerHTML = '<div style="color:#dc2626;font-size:12px;padding:12px;">Mağazalar yüklenemedi.</div>';
   }
 });
+
+// Taxonomy yükle
+let _allTaxonomies = [];
+async function loadTaxonomies() {
+  try {
+    const res = await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'taxonomy' })
+    });
+    const data = await res.json();
+    _allTaxonomies = flattenTaxonomy(data.results || data || []);
+    renderTaxonomyOptions(_allTaxonomies);
+  } catch(e) {
+    console.error('Taxonomy yüklenemedi:', e);
+    document.getElementById('category-inp').innerHTML = '<option value="">Yüklenemedi — ID gir</option>';
+  }
+}
+
+function flattenTaxonomy(nodes, prefix = '') {
+  let list = [];
+  nodes.forEach(n => {
+    const label = prefix ? `${prefix} > ${n.name}` : n.name;
+    if (n.id) list.push({ id: n.id, label });
+    if (n.children && n.children.length) {
+      list = list.concat(flattenTaxonomy(n.children, label));
+    }
+  });
+  return list;
+}
+
+function renderTaxonomyOptions(list) {
+  const sel = document.getElementById('category-inp');
+  sel.innerHTML = '<option value="">Kategori seç...</option>' +
+    list.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+}
+
+window.filterCategories = (q) => {
+  if (!q) { renderTaxonomyOptions(_allTaxonomies); return; }
+  const filtered = _allTaxonomies.filter(t => t.label.toLowerCase().includes(q.toLowerCase()));
+  renderTaxonomyOptions(filtered.slice(0, 80));
+};
 
 async function loadShippingProfiles(store) {
   const sel = document.getElementById('shipping-inp');
@@ -664,10 +686,7 @@ function renderTags() {
   inp.addEventListener('blur', () => { if (inp.value.trim()) addTag(inp.value.trim()); });
 }
 
-// Kategori custom toggle
-document.getElementById('category-inp').addEventListener('change', function() {
-  document.getElementById('category-custom').style.display = this.value === 'custom' ? 'block' : 'none';
-});
+// Kategori toggle kaldırıldı
 </script>
 </body>
 </html>
