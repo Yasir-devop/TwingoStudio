@@ -85,5 +85,23 @@ exports.handler = async (event) => {
     }
   }
 
+  // ── TAXONOMY ─────────────────────────────────────────
+  const isTaxonomy = params.action === 'taxonomy' || (event.body && event.body.includes('"taxonomy"'));
+  if (isTaxonomy) {
+    try {
+      const response = await fetch('https://openapi.etsy.com/v3/application/seller-taxonomy/nodes', {
+        method: 'GET',
+        headers: { 
+          'x-api-key': ETSY_KEY,
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      return { statusCode: 200, headers, body: JSON.stringify(data) };
+    } catch(e) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
+    }
+  }
+
   return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 };

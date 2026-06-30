@@ -162,10 +162,12 @@ select.inp { appearance: none; background-image: url("data:image/svg+xml,%3Csvg 
       <div class="card-title"><span>📦</span> Kategori & Kargo</div>
       <div class="field">
         <div class="label">Etsy Kategorisi</div>
-        <select class="inp" id="category-inp">
-          <option value="">Kategori yükleniyor...</option>
-        </select>
-        <input class="inp" type="text" id="category-search" placeholder="Ara... (örn: shirt, mug)" style="margin-top:6px;" oninput="filterCategories(this.value)">
+        <div style="position:relative;">
+          <input class="inp" type="text" id="category-search" placeholder="Kategori ara... (örn: shirt, t-shirt, mug)" oninput="filterCategories(this.value)" autocomplete="off">
+          <input type="hidden" id="category-inp">
+          <div id="category-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--accent);border-top:none;border-radius:0 0 10px 10px;max-height:220px;overflow-y:auto;z-index:100;box-shadow:0 4px 16px rgba(0,0,0,0.08);"></div>
+        </div>
+        <div id="category-selected" style="font-size:11px;color:var(--accent);margin-top:4px;display:none;"></div>
       </div>
       <div class="field">
         <div class="label">Shipping Profile</div>
@@ -286,19 +288,41 @@ async function loadTaxonomies() {
       body: JSON.stringify({ action: 'taxonomy' })
     });
     const data = await res.json();
-    _allTaxonomies = flattenTaxonomy(data.results || data || []);
-    renderTaxonomyOptions(_allTaxonomies);
+    console.log('Taxonomy API:', data);
+    // Etsy taxonomy farklı formatlarda dönebilir
+    const nodes = data.results || data.seller_taxonomy_nodes || data || [];
+    _allTaxonomies = flattenTaxonomy(Array.isArray(nodes) ? nodes : []);
+    if (_allTaxonomies.length) {
+      document.getElementById('category-search').placeholder = `Kategori ara... (${_allTaxonomies.length} kategori yüklendi)`;
+    } else {
+      // Fallback: manuel giriş
+      document.getElementById('category-inp').innerHTML = '<option value="">API hatası — aşağıya ID gir</option>';
+      showCategoryFallback();
+    }
   } catch(e) {
     console.error('Taxonomy yüklenemedi:', e);
-    document.getElementById('category-inp').innerHTML = '<option value="">Yüklenemedi — ID gir</option>';
+    document.getElementById('category-inp').innerHTML = '<option value="">Yüklenemedi</option>';
+    showCategoryFallback();
   }
+}
+
+function showCategoryFallback() {
+  document.getElementById('category-search').placeholder = 'Taxonomy ID manuel gir (sayı)...';
+  document.getElementById('category-search').type = 'number';
+  document.getElementById('category-search').oninput = function() {
+    document.getElementById('category-inp').value = this.value;
+  };
 }
 
 function flattenTaxonomy(nodes, prefix = '') {
   let list = [];
+  if (!nodes || !Array.isArray(nodes)) return list;
   nodes.forEach(n => {
     const label = prefix ? `${prefix} > ${n.name}` : n.name;
-    if (n.id) list.push({ id: n.id, label });
+    // Etsy taxonomy: id veya taxonomy_id
+    const id = n.id || n.taxonomy_id;
+    if (id && !n.children?.length) list.push({ id, label }); // sadece yaprak node'lar
+    else if (id) list.push({ id, label }); // parent'ları da ekle
     if (n.children && n.children.length) {
       list = list.concat(flattenTaxonomy(n.children, label));
     }
@@ -307,16 +331,38 @@ function flattenTaxonomy(nodes, prefix = '') {
 }
 
 function renderTaxonomyOptions(list) {
-  const sel = document.getElementById('category-inp');
-  sel.innerHTML = '<option value="">Kategori seç...</option>' +
-    list.map(t => `<option value="${t.id}">${t.label}</option>`).join('');
+  // artık kullanılmıyor
 }
 
 window.filterCategories = (q) => {
-  if (!q) { renderTaxonomyOptions(_allTaxonomies); return; }
-  const filtered = _allTaxonomies.filter(t => t.label.toLowerCase().includes(q.toLowerCase()));
-  renderTaxonomyOptions(filtered.slice(0, 80));
+  const dd = document.getElementById('category-dropdown');
+  if (!q || q.length < 2) { dd.style.display = 'none'; return; }
+  const filtered = _allTaxonomies.filter(t => t.label.toLowerCase().includes(q.toLowerCase())).slice(0, 50);
+  if (!filtered.length) { dd.style.display = 'none'; return; }
+  dd.innerHTML = filtered.map(t =>
+    `<div onclick="selectCategory(${t.id}, '${t.label.replace(/'/g,"\'")}')"
+      style="padding:9px 12px;font-size:12px;cursor:pointer;color:var(--gray-700);border-bottom:1px solid var(--gray-100);"
+      onmouseover="this.style.background='var(--accent-light)'"
+      onmouseout="this.style.background=''">${t.label}</div>`
+  ).join('');
+  dd.style.display = 'block';
 };
+
+window.selectCategory = (id, label) => {
+  document.getElementById('category-inp').value = id;
+  document.getElementById('category-search').value = label;
+  document.getElementById('category-dropdown').style.display = 'none';
+  const sel = document.getElementById('category-selected');
+  sel.textContent = '✅ Seçildi: ' + label + ' (ID: ' + id + ')';
+  sel.style.display = 'block';
+};
+
+// Dışarı tıklayınca dropdown kapat
+document.addEventListener('click', e => {
+  if (!e.target.closest('#category-search') && !e.target.closest('#category-dropdown')) {
+    document.getElementById('category-dropdown').style.display = 'none';
+  }
+});
 
 async function loadShippingProfiles(store) {
   const sel = document.getElementById('shipping-inp');
@@ -494,9 +540,7 @@ window.publishListings = async (state) => {
   const desc = document.getElementById('desc-inp').value.trim();
   const qty = parseInt(document.getElementById('qty-inp').value) || 999;
   const price = parseFloat(document.getElementById('price-inp').value) || 0;
-  const catVal = document.getElementById('category-inp').value;
-  const catCustom = document.getElementById('category-custom').value.trim();
-  const taxonomyId = catVal === 'custom' ? parseInt(catCustom) : parseInt(catVal);
+  const taxonomyId = parseInt(document.getElementById('category-inp').value);
   const shippingId = parseInt(document.getElementById('shipping-inp').value);
 
   if (!title) { showToast('❌ Başlık zorunlu'); return; }
