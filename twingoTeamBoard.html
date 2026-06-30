@@ -388,6 +388,12 @@ onAuthStateChanged(auth, user => {
   // Kullanıcı adını header'a yaz
   const nameEl = document.getElementById('user-display-name');
   if (nameEl) nameEl.textContent = user.displayName || user.email;
+  // Kullanıcıyı users koleksiyonuna kaydet (paylaşım için)
+  setDoc(doc(db, 'users', user.uid), {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName || ''
+  }, { merge: true }).catch(e => console.warn('users kayıt hatası:', e));
   // Görevleri yükle
   loadTasksFromFirebase();
 });
