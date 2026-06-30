@@ -353,7 +353,7 @@ body.dark .stats-bar { background: #1a1a1a; border-color: #2a2a2a; }
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
-import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, where } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, query, where, getDocs } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
@@ -495,11 +495,7 @@ window.fbSignOut = () => {
       </div>
       <button class="btn-add" onclick="openModal()">+ Yeni Ekle</button>
       <div style="width:1px;height:20px;background:var(--gray-200);margin:0 4px;"></div>
-      <button class="export-btn" id="export-btn" onclick="exportSelected()" title="Seçilileri dışa aktar">⬇ Dışa Aktar (<span id="sel-count">0</span>)</button>
-      <label class="btn" style="cursor:pointer;font-size:12px;padding:7px 12px;" title="JSON içe aktar">
-        ⬆ İçe Aktar
-        <input type="file" id="import-input" accept=".json" style="display:none;" onchange="importTasks(event)">
-      </label>
+      <button class="export-btn" id="export-btn" onclick="openShareModal()" title="Seçilileri paylaş">↗ Paylaş (<span id="sel-count">0</span>)</button>
     </div>
 
     <!-- KANBAN VIEW -->
@@ -763,6 +759,76 @@ function updateExportBtn() {
   const count = document.getElementById('sel-count');
   count.textContent = selectedIds.size;
   btn.classList.toggle('visible', selectedIds.size > 0);
+}
+
+// ── PAYLAŞ ────────────────────────────────────────────
+function openShareModal() {
+  if (!selectedIds.size) return;
+  const modal = document.getElementById('share-modal');
+  const info = document.getElementById('share-task-info');
+  info.textContent = selectedIds.size + ' görev / not paylaşılacak';
+  document.getElementById('share-email-inp').value = '';
+  document.getElementById('share-error').style.display = 'none';
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('share-email-inp').focus(), 100);
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal').style.display = 'none';
+}
+
+async function doShare() {
+  const email = document.getElementById('share-email-inp').value.trim().toLowerCase();
+  const errEl = document.getElementById('share-error');
+  const btn = document.getElementById('share-confirm-btn');
+  errEl.style.display = 'none';
+
+  if (!email) { errEl.textContent = 'E-posta gir.'; errEl.style.display = 'block'; return; }
+  if (email === currentUser.email.toLowerCase()) {
+    errEl.textContent = 'Kendinizle paylaşamazsınız.'; errEl.style.display = 'block'; return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Aranıyor...';
+
+  try {
+    // users koleksiyonunda email ile ara
+    const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+    if (usersSnap.empty) {
+      errEl.textContent = 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Paylaş';
+      return;
+    }
+
+    const targetUser = usersSnap.docs[0].data();
+    const selected = tasks.filter(t => selectedIds.has(t.id));
+
+    // Görevleri hedef kullanıcıya kopyala
+    const sharePromises = selected.map(t => {
+      const newId = 'task_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      const sharedTask = {
+        ...t,
+        id: newId,
+        userId: targetUser.uid,
+        sharedBy: currentUser.email,
+        sharedAt: Date.now(),
+        createdAt: Date.now()
+      };
+      return setDoc(doc(db, 'tasks', newId), sharedTask);
+    });
+
+    await Promise.all(sharePromises);
+    closeShareModal();
+    showToast('✅ ' + selected.length + ' görev ' + email + ' ile paylaşıldı');
+    // Seçimi temizle
+    selectedIds.clear();
+    updateExportBtn();
+    render();
+  } catch(e) {
+    errEl.textContent = 'Hata: ' + e.message;
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Paylaş';
+  }
 }
 
 function exportSelected() {
@@ -1087,5 +1153,28 @@ function closeConfirm() {
   if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
 }
 </script>
+
+<!-- PAYLAŞ MODAL -->
+<div id="share-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:var(--white);border-radius:18px;box-shadow:var(--shadow-lg);padding:28px;width:380px;max-width:92vw;display:flex;flex-direction:column;gap:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:16px;font-weight:700;">↗ Görevi Paylaş</div>
+      <button onclick="closeShareModal()" style="background:none;border:none;cursor:pointer;font-size:22px;color:var(--gray-400);">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--gray-500);" id="share-task-info"></div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <label style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.06em;">Kullanıcı E-postası</label>
+      <input id="share-email-inp" type="email" placeholder="ornek@email.com"
+        style="padding:10px 12px;border:1.5px solid var(--gray-200);border-radius:10px;font-family:inherit;font-size:13px;outline:none;background:var(--gray-100);"
+        onkeydown="if(event.key==='Enter')doShare()">
+    </div>
+    <div id="share-error" style="font-size:12px;color:#dc2626;display:none;"></div>
+    <button onclick="doShare()" id="share-confirm-btn"
+      style="padding:11px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">
+      Paylaş
+    </button>
+  </div>
+</div>
+
 </body>
 </html>

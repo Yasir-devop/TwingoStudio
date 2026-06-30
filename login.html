@@ -122,6 +122,7 @@ body {
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+import { getFirestore, doc, setDoc } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js';
 
 const firebaseConfig = {
   apiKey: "AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
@@ -135,6 +136,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 // Zaten giriş yapmışsa index'e yönlendir
 onAuthStateChanged(auth, user => {
@@ -152,7 +154,13 @@ window.login = async () => {
   errEl.classList.remove('show');
 
   try {
-    await signInWithEmailAndPassword(auth, email, password);
+    const cred = await signInWithEmailAndPassword(auth, email, password);
+    // Kullanıcıyı users koleksiyonuna kaydet (email → uid mapping)
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      uid: cred.user.uid,
+      email: cred.user.email,
+      displayName: cred.user.displayName || ''
+    }, { merge: true });
     window.location.href = 'index.html';
   } catch(e) {
     btn.disabled = false; btn.textContent = 'Giriş Yap';
@@ -181,6 +189,12 @@ window.register = async () => {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(cred.user, { displayName: name });
+    // Kullanıcıyı users koleksiyonuna kaydet
+    await setDoc(doc(db, 'users', cred.user.uid), {
+      uid: cred.user.uid,
+      email: cred.user.email,
+      displayName: name
+    });
     window.location.href = 'index.html';
   } catch(e) {
     btn.disabled = false; btn.textContent = 'Hesap Oluştur';
