@@ -298,6 +298,10 @@ onAuthStateChanged(auth, async user => {
 
 async function loadShippingProfiles(store) {
   const sel = document.getElementById('shipping-inp');
+  // Eski fallback input varsa kaldır
+  const old = document.getElementById('shipping-inp-fallback');
+  if (old) old.remove();
+
   sel.innerHTML = '<option value="">Yükleniyor...</option>';
   try {
     const res = await fetch(FUNCTION_URL, {
@@ -310,18 +314,38 @@ async function loadShippingProfiles(store) {
       })
     });
     const data = await res.json();
-    const profiles = data.results || [];
+    console.log('Shipping profiles API response:', data);
+
+    // Scope hatası veya 401
+    if (data.error === 'Access denied' || data.status === 401 || data.error?.includes('scope')) {
+      showShippingFallback(sel, 'Yetki hatası — token yeniden bağlanmalı');
+      return;
+    }
+
+    const profiles = data.results || data.shipping_profiles || [];
     if (!profiles.length) {
-      sel.innerHTML = '<option value="">Shipping profile bulunamadı</option>';
+      // Boş geldi — manuel giriş göster
+      showShippingFallback(sel, 'Profile bulunamadı — ID manuel gir');
       return;
     }
     sel.innerHTML = '<option value="">Shipping profile seç...</option>' +
-      profiles.map(p => `<option value="${p.shipping_profile_id}">${p.title} (ID: ${p.shipping_profile_id})</option>`).join('');
+      profiles.map(p =>
+        `<option value="${p.shipping_profile_id}">${p.title || 'Profile'} (ID: ${p.shipping_profile_id})</option>`
+      ).join('');
   } catch(e) {
-    sel.innerHTML = '<option value="">Yüklenemedi — ID gir</option>';
+    console.error('Shipping load error:', e);
+    showShippingFallback(sel, 'Bağlantı hatası — ID manuel gir');
+  }
+}
+
+function showShippingFallback(sel, msg) {
+  sel.innerHTML = `<option value="">${msg}</option>`;
+  if (!document.getElementById('shipping-inp-fallback')) {
     const inp = document.createElement('input');
-    inp.className = 'inp'; inp.type = 'text'; inp.id = 'shipping-inp-fallback';
-    inp.placeholder = 'Shipping Profile ID manuel gir...';
+    inp.className = 'inp';
+    inp.type = 'text';
+    inp.id = 'shipping-inp-fallback';
+    inp.placeholder = 'Shipping Profile ID gir (sayı)...';
     inp.style.marginTop = '6px';
     sel.parentElement.appendChild(inp);
   }

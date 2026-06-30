@@ -251,7 +251,7 @@ const NETLIFY_URL = window.location.origin;
 const REDIRECT_URI = `${NETLIFY_URL}/etsy-callback.html`;
 const ADMIN_EMAIL = 'admin@gmail.com';
 const FUNCTION_URL = `${NETLIFY_URL}/.netlify/functions/etsy-auth`;
-const SCOPES = 'transactions_r listings_r shops_r';
+const SCOPES = 'transactions_r listings_r listings_w listings_d shops_r shops_w';
 
 let currentUser = null;
 let etsyToken = null;
