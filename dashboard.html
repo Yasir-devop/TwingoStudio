@@ -76,7 +76,7 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
 @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
 
 /* Dashboard main layout with sidebar */
-.dashboard-layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
+.dashboard-layout { display: grid; grid-template-columns: 220px 1fr; gap: 16px; align-items: start; }
 @media (max-width: 1024px) { .dashboard-layout { grid-template-columns: 1fr; } }
 .dashboard-main { min-width: 0; }
 
@@ -186,9 +186,15 @@ tr:hover td { background: var(--gray-50); }
     </div>
 
     <div class="dashboard-layout">
-      <!-- Sol: Stats + Charts -->
+      <!-- Sol: Mağaza Siparişleri -->
+      <div class="orders-sidebar">
+        <div class="orders-sidebar-title">📦 Mağaza Siparişleri</div>
+        <div class="orders-sidebar-sub">Bugün / Dün karşılaştırması</div>
+        <div id="stores-orders-list"><div class="sidebar-loading">Yükleniyor...</div></div>
+      </div>
+
+      <!-- Sağ: Charts -->
       <div class="dashboard-main">
-        <!-- Charts -->
         <div class="charts-grid">
           <div class="chart-card">
             <div class="chart-title">📈 Günlük Satış</div>
@@ -199,13 +205,6 @@ tr:hover td { background: var(--gray-50); }
             <div id="top-listings"></div>
           </div>
         </div>
-      </div>
-
-      <!-- Sağ: Tüm Mağazalar Sipariş Özeti -->
-      <div class="orders-sidebar">
-        <div class="orders-sidebar-title">📦 Mağaza Siparişleri</div>
-        <div class="orders-sidebar-sub">Bugün / Dün karşılaştırması</div>
-        <div id="stores-orders-list"><div class="sidebar-loading">Yükleniyor...</div></div>
       </div>
     </div>
 
@@ -495,19 +494,16 @@ async function loadAllStoresOrders() {
   }
 
   listEl.innerHTML = results.map(r => {
-    const badgeClass = r.diff > 0 ? 'positive' : 'zero';
-    const diffText = r.diff > 0 ? `+${r.diff}` : r.diff === 0 ? '—' : `${r.diff}`;
-    const arrow = r.diff > 0 ? '↑' : r.diff < 0 ? '↓' : '';
+    const badge = r.diff > 0
+      ? `<div class="order-badge positive">+${r.diff}</div>`
+      : '';
     return `
     <div class="store-order-row">
       <div>
         <div class="store-order-name" title="${r.shopName}">${r.shopName}</div>
         <div class="store-order-meta">Bugün: ${r.todayOrders} · Dün: ${r.yesterdayOrders}</div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-        <div class="order-badge ${badgeClass}">${diffText}</div>
-        ${arrow ? `<div style="font-size:9px;color:${r.diff > 0 ? '#991b1b' : '#94a3b8'};">${arrow} fark</div>` : ''}
-      </div>
+      <div>${badge}</div>
     </div>`;
   }).join('');
 }
