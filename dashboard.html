@@ -135,9 +135,8 @@ tr:hover td { background: var(--gray-50); }
       <button onclick="connectEtsy()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;border:1px dashed var(--accent);background:var(--accent-light);color:var(--accent);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Mağaza Ekle</button>
       <button onclick="openManageStores()" style="padding:7px 12px;border-radius:20px;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-500);font-family:inherit;font-size:11px;cursor:pointer;">⚙️ Yönet</button>
       <div class="period-btns">
-        <button class="period-btn" onclick="setPeriod(7, this)">7 Gün</button>
-        <button class="period-btn active" onclick="setPeriod(30, this)">30 Gün</button>
-        <button class="period-btn" onclick="setPeriod(90, this)">90 Gün</button>
+        <button class="period-btn active" onclick="setPeriod(7, this)">Today</button>
+        <button class="period-btn" onclick="setPeriod(30, this)">Aylık</button>
       </div>
     </div>
 
@@ -209,7 +208,7 @@ let currentUser = null;
 let etsyToken = null;
 let etsyStores = []; // Tüm bağlı mağazalar
 let currentShopId = null;
-let period = 30;
+let period = 7;
 let revenueChart = null;
 
 // ── AUTH ───────────────────────────────────────────────
@@ -504,9 +503,9 @@ function processData(receipts, listings) {
   const revenue = filtered.reduce((s, r) => s + parseFloat(r.grandtotal?.amount || r.total_price || 0), 0);
 
   document.getElementById('stat-revenue').textContent = totalOrders + ' adet';
-  document.getElementById('stat-revenue-sub').textContent = period + ' günlük toplam';
-  document.getElementById('stat-orders').textContent = '$' + revenue.toFixed(0);
-  document.getElementById('stat-orders-sub').textContent = period + ' günlük';
+  document.getElementById('stat-revenue-sub').textContent = period === 7 ? 'bugün' : 'aylık toplam';
+  document.getElementById('stat-orders').textContent = '$' + revenue.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  document.getElementById('stat-orders-sub').textContent = period === 7 ? 'bugün' : 'aylık';
   document.getElementById('stat-avg').textContent = dailyAvg;
   document.getElementById('stat-avg-sub').textContent = 'sipariş / gün';
   document.getElementById('stat-listings').textContent = listings.count || (listings.results?.length || 0);
