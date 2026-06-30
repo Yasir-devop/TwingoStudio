@@ -103,5 +103,44 @@ exports.handler = async (event) => {
     }
   }
 
+  // ── IMAGE UPLOAD ─────────────────────────────────────
+  if (params.action === 'upload-image' || body.action === 'upload-image') {
+    const { shopId, listingId, access_token, base64, mimeType, rank } = body;
+    try {
+      // base64'ü binary'e çevir
+      const binaryStr = Buffer.from(base64, 'base64');
+      const ext = (mimeType || 'image/jpeg').split('/')[1] || 'jpg';
+      const filename = `image_${rank}.${ext}`;
+
+      // Multipart form data oluştur
+      const boundary = '----FormBoundary' + Math.random().toString(36).slice(2);
+      const parts = [
+        `--${boundary}\r\nContent-Disposition: form-data; name="rank"\r\n\r\n${rank}`,
+        `--${boundary}\r\nContent-Disposition: form-data; name="image"; filename="${filename}"\r\nContent-Type: ${mimeType || 'image/jpeg'}\r\n\r\n`
+      ];
+
+      const partsBuf = Buffer.from(parts[0] + '\r\n' + parts[1], 'utf8');
+      const endBuf = Buffer.from(`\r\n--${boundary}--\r\n`, 'utf8');
+      const body2 = Buffer.concat([partsBuf, binaryStr, endBuf]);
+
+      const response = await fetch(
+        `https://openapi.etsy.com/v3/application/shops/${shopId}/listings/${listingId}/images`,
+        {
+          method: 'POST',
+          headers: {
+            'x-api-key': `${ETSY_KEY}:${ETSY_SECRET}`,
+            'Authorization': `Bearer ${access_token}`,
+            'Content-Type': `multipart/form-data; boundary=${boundary}`
+          },
+          body: body2
+        }
+      );
+      const data = await response.json();
+      return { statusCode: 200, headers, body: JSON.stringify(data) };
+    } catch(e) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
+    }
+  }
+
   return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 };
