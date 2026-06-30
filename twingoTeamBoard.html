@@ -367,6 +367,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+// doShare gibi module-dışı fonksiyonlar için window'a aç
+window._db = db;
+window._collection = collection;
+window._getDocs = getDocs;
+window._query = query;
+window._where = where;
+window._setDoc = setDoc;
+window._doc = doc;
 
 let currentUser = null;
 let unsubscribeTasks = null;
@@ -375,6 +383,7 @@ let unsubscribeTasks = null;
 onAuthStateChanged(auth, user => {
   if (!user) { window.location.href = 'login.html'; return; }
   currentUser = user;
+  window._currentUser = user;
   document.body.style.visibility = 'visible';
   // Kullanıcı adını header'a yaz
   const nameEl = document.getElementById('user-display-name');
@@ -784,6 +793,8 @@ async function doShare() {
   errEl.style.display = 'none';
 
   if (!email) { errEl.textContent = 'E-posta gir.'; errEl.style.display = 'block'; return; }
+  const currentUser = window._currentUser;
+  if (!currentUser) { errEl.textContent = 'Oturum bulunamadı, sayfayı yenile.'; errEl.style.display = 'block'; return; }
   if (email === currentUser.email.toLowerCase()) {
     errEl.textContent = 'Kendinizle paylaşamazsınız.'; errEl.style.display = 'block'; return;
   }
@@ -791,8 +802,9 @@ async function doShare() {
   btn.disabled = true; btn.textContent = 'Aranıyor...';
 
   try {
+    const { _db, _collection, _getDocs, _query, _where, _setDoc, _doc } = window;
     // users koleksiyonunda email ile ara
-    const usersSnap = await getDocs(query(collection(db, 'users'), where('email', '==', email)));
+    const usersSnap = await _getDocs(_query(_collection(_db, 'users'), _where('email', '==', email)));
     if (usersSnap.empty) {
       errEl.textContent = 'Bu e-posta ile kayıtlı kullanıcı bulunamadı.';
       errEl.style.display = 'block';
@@ -810,11 +822,11 @@ async function doShare() {
         ...t,
         id: newId,
         userId: targetUser.uid,
-        sharedBy: currentUser.email,
+        sharedBy: (window._currentUser?.email || ''),
         sharedAt: Date.now(),
         createdAt: Date.now()
       };
-      return setDoc(doc(db, 'tasks', newId), sharedTask);
+      return _setDoc(_doc(_db, 'tasks', newId), sharedTask);
     });
 
     await Promise.all(sharePromises);
