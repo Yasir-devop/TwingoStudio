@@ -122,6 +122,18 @@ select.inp { appearance: none; background-image: url("data:image/svg+xml,%3Csvg 
           <div class="label">Miktar</div>
           <input class="inp" type="number" id="qty-inp" value="999" min="1" max="999" oninput="updatePreview()">
         </div>
+        <div class="field">
+          <div class="label">SKU <span style="font-weight:400;text-transform:none;">(opsiyonel)</span></div>
+          <input class="inp" type="text" id="sku-inp" placeholder="Ürün kodu...">
+        </div>
+        <div class="field">
+          <div class="label">Shipping Profile <span style="font-weight:400;text-transform:none;">(opsiyonel)</span></div>
+          <input class="inp" type="text" id="shipping-inp" placeholder="Kargo profil adı veya ID...">
+        </div>
+        <div class="field">
+          <div class="label">Section <span style="font-weight:400;text-transform:none;">(opsiyonel)</span></div>
+          <input class="inp" type="text" id="section-inp" placeholder="Mağaza bölümü...">
+        </div>
       </div>
       <div class="inp-row">
         <div class="field">
@@ -393,37 +405,82 @@ window.downloadCSV = () => {
   const qty = document.getElementById('qty-inp').value || '999';
   const whoMade = document.getElementById('who-made').value;
   const whenMade = document.getElementById('when-made').value;
-  const state = document.getElementById('state-inp').value;
   const renew = document.getElementById('renew-inp').value;
+  const shipping = document.getElementById('shipping-inp').value.trim();
+  const section = document.getElementById('section-inp').value.trim();
+  const sku = document.getElementById('sku-inp').value.trim();
 
   if (!title) { showToast('❌ Başlık zorunlu'); return; }
   if (!desc) { showToast('❌ Açıklama zorunlu'); return; }
 
-  const tags = window._tags.join(',');
-  const mats = window._mats.join(',');
+  const tags = window._tags.join(', ');
+  const mats = window._mats.join(', ');
 
-  // Görsel URL'leri topla
+  // Varyasyonlar
+  const varRows = document.querySelectorAll('#var-list .var-row');
+  let var1name='', var1opts='', var2name='', var2opts='';
+  const varData = Array.from(varRows).map(r => {
+    const inps = r.querySelectorAll('input');
+    return { name: inps[0]?.value.trim(), opts: inps[1]?.value.trim() };
+  }).filter(v => v.name && v.opts);
+  if (varData[0]) { var1name = varData[0].name; var1opts = varData[0].opts; }
+  if (varData[1]) { var2name = varData[1].name; var2opts = varData[1].opts; }
+
+  // Görsel URL'leri topla (10 adet)
   const imgRows = document.querySelectorAll('#img-url-list .var-row input:first-child');
-  const imgUrls = Array.from(imgRows).map(r=>r.value.trim()).filter(Boolean);
+  const imgUrls = Array.from({length:10}, (_,i) => {
+    const val = imgRows[i]?.value.trim() || '';
+    return val;
+  });
 
-  // Her mağaza için ayrı CSV
+  // Vela'nın gerçek CSV template header'ı
+  const headers = [
+    'Title','Description','Category','Who made it?','What is it?','When was it made?',
+    'Renewal options','Product type','Tags','Materials','Production partners','Section',
+    'Price','Quantity','SKU','Variation 1','V1 Option','Variation 2','V2 Option',
+    'Var Price','Var Quantity','Var SKU','Var Visibility','Var Photo',
+    'Shipping profile','Weight','Length','Width','Height','Return policy',
+    'Photo 1','Photo 2','Photo 3','Photo 4','Photo 5',
+    'Photo 6','Photo 7','Photo 8','Photo 9','Photo 10',
+    'Video 1','Digital file 1','Digital file 2','Digital file 3','Digital file 4','Digital file 5'
+  ];
+
+  function q(v) { return `"${String(v).replace(/"/g,'""')}"`; }
+
+  // Who made it değerlerini Vela formatına çevir
+  const whoMadeMap = { 'i_did': 'i_did', 'someone_else': 'someone_else', 'collective': 'collective' };
+  const whenMadeMap = { 'made_to_order': 'made_to_order', '2020_2024': '2020_2024', '2010_2019': '2010_2019', '2000_2009': '2000_2009', 'before_2000': 'before_2000' };
+  const renewMap = { 'true': 'automatic', 'false': 'manual' };
+
+  const row = [
+    q(title), q(desc),
+    q(''),           // Category - Vela'da seçilir
+    q(whoMadeMap[whoMade] || whoMade),
+    q('finished'),   // What is it? - finished product
+    q(whenMadeMap[whenMade] || whenMade),
+    q(renewMap[renew] || 'automatic'),
+    q('physical'),   // Product type
+    q(tags), q(mats),
+    q(''),           // Production partners
+    q(section),      // Section
+    q(price), q(qty), q(sku),
+    q(var1name), q(var1opts),
+    q(var2name), q(var2opts),
+    q(''), q(''), q(''), q(''), q(''), // Var Price, Qty, SKU, Visibility, Photo
+    q(shipping),
+    q(''), q(''), q(''), q(''), // Weight, Length, Width, Height
+    q(''),           // Return policy
+    ...imgUrls.map(u => q(u)),
+    q(''),           // Video 1
+    q(''), q(''), q(''), q(''), q('') // Digital files
+  ];
+
+  // Her mağaza için ayrı CSV indir
   selected.forEach(store => {
-    // Vela CSV format header
-    const headers = ['TITLE','DESCRIPTION','PRICE','QUANTITY','WHO_MADE','WHEN_MADE','STATE','SHOULD_AUTO_RENEW','TAGS','MATERIALS','IMAGE1','IMAGE2','IMAGE3','IMAGE4','IMAGE5','SHOP_NAME'];
-    const row = [
-      `"${title.replace(/"/g,'""')}"`,
-      `"${desc.replace(/"/g,'""')}"`,
-      price, qty, whoMade, whenMade, state, renew,
-      `"${tags}"`,
-      `"${mats}"`,
-      ...Array.from({length:5}, (_,i) => imgUrls[i] ? `"${imgUrls[i]}"` : '""'),
-      `"${store.shopName}"`
-    ];
-
     const csv = [headers.join(','), row.join(',')].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const a = document.createElement('a');
-    a.download = `vela-listing-${store.shopName}-${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `vela-${store.shopName}-${new Date().toISOString().slice(0,10)}.csv`;
     a.href = URL.createObjectURL(blob);
     a.click();
     URL.revokeObjectURL(a.href);
