@@ -227,20 +227,27 @@ onAuthStateChanged(auth, async user => {
   currentUser = user;
   document.body.style.visibility = 'visible';
 
-  // Etsy callback var mı kontrol et
+  const isAdmin = user.email === ADMIN_EMAIL;
+  window._isAdmin = isAdmin;
+
+  // Admin kontrolü - butonları göster/gizle
+  const addBtn = document.getElementById('add-store-btn');
+  if (addBtn) addBtn.style.display = isAdmin ? 'flex' : 'none';
+  const modalWrap = document.getElementById('modal-add-store-wrap');
+  if (modalWrap) modalWrap.style.display = isAdmin ? 'block' : 'none';
+
+  // Etsy callback var mı kontrol et (sadece admin)
   const urlP = new URLSearchParams(window.location.search);
   const isCallback = urlP.get('etsy_connected') === '1';
   const callbackCode = sessionStorage.getItem('etsy_code');
   const callbackState = sessionStorage.getItem('etsy_callback_state');
 
-  if (isCallback && callbackCode) {
-    // Callback akışı: önce mevcut mağazaları yükle, sonra yeni mağazayı ekle
+  if (isAdmin && isCallback && callbackCode) {
     sessionStorage.removeItem('etsy_code');
     sessionStorage.removeItem('etsy_callback_state');
-    // URL'i temizle (history.replaceState)
     window.history.replaceState({}, '', window.location.pathname);
     try {
-      const snap = await getDoc(doc(db, 'etsy_stores', user.uid));
+      const snap = await getDoc(doc(db, 'etsy_stores', 'shared'));
       if (snap.exists() && snap.data().stores?.length > 0) {
         etsyStores = snap.data().stores;
       }
@@ -249,12 +256,12 @@ onAuthStateChanged(auth, async user => {
     return;
   }
 
-  // Normal akış: mağazaları yükle
+  // Normal akış: herkes 'shared' dokümanından okur
   try {
-    const snap = await getDoc(doc(db, 'etsy_stores', user.uid));
+    const snap = await getDoc(doc(db, 'etsy_stores', 'shared'));
     if (snap.exists() && snap.data().stores?.length > 0) {
       etsyStores = snap.data().stores;
-      const lastShop = localStorage.getItem('twingo_last_shop_' + user.uid);
+      const lastShop = localStorage.getItem('twingo_last_shop_' + user.uid); // her kullanıcı kendi son seçimini hatırlar
       const savedStore = lastShop ? etsyStores.find(s => String(s.shopId) === String(lastShop)) : null;
       const activeStore = savedStore || etsyStores[0];
       etsyToken = activeStore.token;
@@ -267,15 +274,6 @@ onAuthStateChanged(auth, async user => {
     console.error('Store load error:', e);
     showConnect();
   }
-
-  // Admin kontrolü - butonları göster/gizle
-  const isAdmin = user.email === ADMIN_EMAIL;
-  const addBtn = document.getElementById('add-store-btn');
-  if (addBtn) addBtn.style.display = isAdmin ? 'flex' : 'none';
-  const modalWrap = document.getElementById('modal-add-store-wrap');
-  if (modalWrap) modalWrap.style.display = isAdmin ? 'block' : 'none';
-  // Manage modal'daki disconnect butonları da sadece adminde görünsün
-  window._isAdmin = isAdmin;
 });
 
 // ── OAUTH ──────────────────────────────────────────────
@@ -311,7 +309,7 @@ window.disconnectEtsy = async (shopId) => {
   if (currentUser) {
     try {
       console.log('[disconnect] Firestore yazılıyor, kalan mağaza sayısı:', etsyStores.length);
-      await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores });
+      await setDoc(doc(db, 'etsy_stores', 'shared'), { stores: etsyStores });
       console.log('[disconnect] Firestore yazıldı ✅');
     } catch(e) {
       console.error('Firestore disconnect error:', e);
@@ -405,7 +403,7 @@ window.handleEtsyCallback = async (code, state) => {
     const existingIdx = etsyStores.findIndex(s => String(s.shopId) === String(shopId));
     if (existingIdx >= 0) etsyStores[existingIdx] = storeEntry;
     else etsyStores.push(storeEntry);
-    await setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores });
+    await setDoc(doc(db, 'etsy_stores', 'shared'), { stores: etsyStores });
     // Yeni eklenen mağazayı aktif yap
     currentShopId = shopId;
     etsyToken = newToken;
@@ -436,7 +434,7 @@ async function etsyAPI(endpoint) {
           const storeIdx = etsyStores.findIndex(s => String(s.shopId) === String(currentShopId));
           if (storeIdx >= 0) {
             etsyStores[storeIdx].token = etsyToken;
-            setDoc(doc(db, 'etsy_stores', currentUser.uid), { stores: etsyStores })
+            setDoc(doc(db, 'etsy_stores', 'shared'), { stores: etsyStores })
               .catch(e => console.warn('Token refresh Firestore sync failed:', e));
           }
         }
