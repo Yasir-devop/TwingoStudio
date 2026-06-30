@@ -348,7 +348,9 @@ window.disconnectEtsy = async (shopId) => {
   if (currentUser) {
     try {
       console.log('[disconnect] Firestore yazılıyor, kalan mağaza sayısı:', etsyStores.length);
-      await setDoc(doc(db, 'etsy_stores', 'shared'), { stores: etsyStores });
+      // Firestore'a yazmadan önce undefined temizle
+    const cleanStores = JSON.parse(JSON.stringify(etsyStores));
+    await setDoc(doc(db, 'etsy_stores', 'shared'), { stores: cleanStores });
       console.log('[disconnect] Firestore yazıldı ✅');
     } catch(e) {
       console.error('Firestore disconnect error:', e);
@@ -419,7 +421,13 @@ window.handleEtsyCallback = async (code, state) => {
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-    const newToken = { ...data, createdAt: Date.now() };
+    // Token'daki undefined alanları temizle
+    const cleanToken = {};
+    Object.entries({ ...data, createdAt: Date.now() }).forEach(([k,v]) => {
+      if (v !== undefined && v !== null) cleanToken[k] = v;
+    });
+    const newToken = cleanToken;
+
     // Mağaza bilgisini al
     const meRes = await fetch(FUNCTION_URL, {
       method: 'POST',
@@ -434,11 +442,13 @@ window.handleEtsyCallback = async (code, state) => {
       body: JSON.stringify({ action: 'api', endpoint: `application/users/${userId}/shops`, access_token: newToken.access_token })
     });
     const shopData = await shopRes.json();
-    const shopId = shopData.shop_id;
-    const shopName = shopData.shop_name || `Mağaza ${shopId}`;
+    const shopId = shopData.shop_id || shopData.results?.[0]?.shop_id;
+    const shopName = shopData.shop_name || shopData.results?.[0]?.shop_name || `Mağaza ${shopId}`;
+
+    if (!shopId) throw new Error('Mağaza bilgisi alınamadı: ' + JSON.stringify(shopData));
 
     // Aynı mağaza varsa güncelle, yoksa ekle (etsyStores zaten onAuthStateChanged'de yüklendi)
-    const storeEntry = { shopId, shopName, token: newToken };
+    const storeEntry = { shopId: String(shopId), shopName: String(shopName), token: newToken };
     const existingIdx = etsyStores.findIndex(s => String(s.shopId) === String(shopId));
     if (existingIdx >= 0) etsyStores[existingIdx] = storeEntry;
     else etsyStores.push(storeEntry);
