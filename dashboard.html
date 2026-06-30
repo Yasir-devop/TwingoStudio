@@ -127,12 +127,19 @@ tr:hover td { background: var(--gray-50); }
   </div>
 
   <!-- DASHBOARD STATE -->
+  <!-- Admin olmayan kullanıcılar için mağaza yok mesajı -->
+  <div id="no-store-msg" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;gap:16px;color:var(--gray-400);">
+    <div style="font-size:48px;">🏪</div>
+    <div style="font-size:16px;font-weight:600;color:var(--gray-700);">Henüz mağaza bağlanmamış</div>
+    <div style="font-size:13px;color:var(--gray-400);">Admin bir mağaza bağladığında veriler burada görünecek.</div>
+  </div>
+
   <div id="dashboard-state" style="display:none;">
 
     <!-- Store bar -->
     <div class="store-bar">
       <select class="store-select" id="store-select" onchange="switchStore()"></select>
-      <button onclick="connectEtsy()" style="display:flex;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;border:1px dashed var(--accent);background:var(--accent-light);color:var(--accent);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Mağaza Ekle</button>
+      <button id="add-store-btn" onclick="connectEtsy()" style="display:none;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;border:1px dashed var(--accent);background:var(--accent-light);color:var(--accent);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Mağaza Ekle</button>
       <button onclick="openManageStores()" style="padding:7px 12px;border-radius:20px;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-500);font-family:inherit;font-size:11px;cursor:pointer;">⚙️ Yönet</button>
       <div class="period-btns">
         <button class="period-btn active" onclick="setPeriod(7, this)">Today</button>
@@ -174,7 +181,9 @@ tr:hover td { background: var(--gray-50); }
       <button onclick="closeManageStores()" style="background:none;border:none;cursor:pointer;font-size:20px;color:var(--gray-400);">×</button>
     </div>
     <div id="manage-stores-list" style="display:flex;flex-direction:column;gap:8px;max-height:320px;overflow-y:auto;"></div>
-    <button onclick="connectEtsy();closeManageStores();" style="width:100%;padding:11px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">+ Yeni Mağaza Bağla</button>
+    <div id="modal-add-store-wrap">
+      <button onclick="connectEtsy();closeManageStores();" style="width:100%;padding:11px;border-radius:12px;background:var(--accent);color:#fff;border:none;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">+ Yeni Mağaza Bağla</button>
+    </div>
   </div>
 </div>
 
@@ -201,6 +210,7 @@ const ETSY_KEY = 'z8vhgq1wdi92trm3t24f2g92';
 // Netlify site URL'ini buraya yaz
 const NETLIFY_URL = window.location.origin;
 const REDIRECT_URI = `${NETLIFY_URL}/etsy-callback.html`;
+const ADMIN_EMAIL = 'admin@gmail.com';
 const FUNCTION_URL = `${NETLIFY_URL}/.netlify/functions/etsy-auth`;
 const SCOPES = 'transactions_r listings_r shops_r';
 
@@ -257,6 +267,15 @@ onAuthStateChanged(auth, async user => {
     console.error('Store load error:', e);
     showConnect();
   }
+
+  // Admin kontrolü - butonları göster/gizle
+  const isAdmin = user.email === ADMIN_EMAIL;
+  const addBtn = document.getElementById('add-store-btn');
+  if (addBtn) addBtn.style.display = isAdmin ? 'flex' : 'none';
+  const modalWrap = document.getElementById('modal-add-store-wrap');
+  if (modalWrap) modalWrap.style.display = isAdmin ? 'block' : 'none';
+  // Manage modal'daki disconnect butonları da sadece adminde görünsün
+  window._isAdmin = isAdmin;
 });
 
 // ── OAUTH ──────────────────────────────────────────────
@@ -342,7 +361,7 @@ function renderManageStores() {
         <div style="font-size:13px;font-weight:600;color:var(--gray-900);">${s.shopName}</div>
         <div style="font-size:11px;color:var(--gray-400);">ID: ${s.shopId}</div>
       </div>
-      <button onclick="disconnectEtsy('${s.shopId}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;cursor:pointer;font-family:inherit;">Bağlantıyı Kes</button>
+      ${window._isAdmin ? `<button onclick="disconnectEtsy('${s.shopId}')" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid #fecaca;background:#fef2f2;color:#dc2626;cursor:pointer;font-family:inherit;">Bağlantıyı Kes</button>` : ''}
     </div>`).join('');
 }
 
@@ -600,6 +619,12 @@ window.setPeriod = (p, btn) => {
 };
 
 function showConnect() {
+  if (currentUser && currentUser.email !== ADMIN_EMAIL) {
+    document.getElementById('connect-state').style.display = 'none';
+    document.getElementById('dashboard-state').style.display = 'none';
+    document.getElementById('no-store-msg').style.display = 'flex';
+    return;
+  }
   document.getElementById('connect-state').style.display = 'block';
   document.getElementById('dashboard-state').style.display = 'none';
   document.getElementById('disconnect-btn').style.display = 'none';
