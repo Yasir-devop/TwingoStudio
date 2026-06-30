@@ -189,9 +189,11 @@ select.inp { appearance: none; background-image: url("data:image/svg+xml,%3Csvg 
         <input class="inp" type="text" id="category-custom" placeholder="Kategori ID (örn: 69150946)" style="display:none;margin-top:6px;">
       </div>
       <div class="field">
-        <div class="label">Shipping Profile ID</div>
-        <input class="inp" type="text" id="shipping-inp" placeholder="Mağaza shipping profile ID..." id="shipping-inp">
-        <div style="font-size:10px;color:var(--gray-400);margin-top:3px;">Etsy → Shop Manager → Settings → Shipping settings → Profile ID'yi kopyala</div>
+        <div class="label">Shipping Profile</div>
+        <select class="inp" id="shipping-inp">
+          <option value="">Önce mağaza seç...</option>
+        </select>
+        <div style="font-size:10px;color:var(--gray-400);margin-top:3px;">Mağaza seçince otomatik yüklenir.</div>
       </div>
     </div>
 
@@ -294,6 +296,37 @@ onAuthStateChanged(auth, async user => {
   }
 });
 
+async function loadShippingProfiles(store) {
+  const sel = document.getElementById('shipping-inp');
+  sel.innerHTML = '<option value="">Yükleniyor...</option>';
+  try {
+    const res = await fetch(FUNCTION_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'api',
+        endpoint: `application/shops/${store.shopId}/shipping-profiles`,
+        access_token: store.token.access_token
+      })
+    });
+    const data = await res.json();
+    const profiles = data.results || [];
+    if (!profiles.length) {
+      sel.innerHTML = '<option value="">Shipping profile bulunamadı</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">Shipping profile seç...</option>' +
+      profiles.map(p => `<option value="${p.shipping_profile_id}">${p.title} (ID: ${p.shipping_profile_id})</option>`).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">Yüklenemedi — ID gir</option>';
+    const inp = document.createElement('input');
+    inp.className = 'inp'; inp.type = 'text'; inp.id = 'shipping-inp-fallback';
+    inp.placeholder = 'Shipping Profile ID manuel gir...';
+    inp.style.marginTop = '6px';
+    sel.parentElement.appendChild(inp);
+  }
+}
+
 function renderStores(stores) {
   const list = document.getElementById('stores-list');
   list.innerHTML = stores.map((s, i) => `
@@ -314,6 +347,14 @@ window.toggleStore = (i) => {
   cb.checked = !cb.checked;
   item.classList.toggle('selected', cb.checked);
   updateSelectedCount();
+  // Tek mağaza seçiliyse shipping profile'larını yükle
+  const selected = (window._etsyStores||[]).filter((_,j) => document.getElementById(`store-cb-${j}`)?.checked);
+  if (selected.length === 1) loadShippingProfiles(selected[0]);
+  else {
+    const sel = document.getElementById('shipping-inp');
+    sel.innerHTML = '<option value="">Birden fazla mağaza seçildi — ID gir</option>';
+    sel.insertAdjacentHTML('afterbegin', '<option value="">Shipping Profile seç...</option>');
+  }
 };
 
 window.toggleSelectAll = (checked) => {
@@ -410,13 +451,15 @@ window.publishListings = async (state) => {
   const catVal = document.getElementById('category-inp').value;
   const catCustom = document.getElementById('category-custom').value.trim();
   const taxonomyId = catVal === 'custom' ? parseInt(catCustom) : parseInt(catVal);
-  const shippingId = parseInt(document.getElementById('shipping-inp').value.trim());
+  const shippingId = parseInt(document.getElementById('shipping-inp').value);
 
   if (!title) { showToast('❌ Başlık zorunlu'); return; }
   if (!desc) { showToast('❌ Açıklama zorunlu'); return; }
   if (!price) { showToast('❌ Fiyat zorunlu'); return; }
   if (!taxonomyId) { showToast('❌ Kategori seç'); return; }
-  if (!shippingId) { showToast('❌ Shipping Profile ID gir'); return; }
+  const fallbackInp = document.getElementById('shipping-inp-fallback');
+  const finalShippingId = shippingId || (fallbackInp ? parseInt(fallbackInp.value) : 0);
+  if (!finalShippingId) { showToast('❌ Shipping Profile seç veya ID gir'); return; }
 
   const tags = window._tags || [];
   const imageUrls = uploadedImages.map(img => img.url);
@@ -455,7 +498,7 @@ window.publishListings = async (state) => {
         who_made: 'i_did',
         when_made: 'made_to_order',
         taxonomy_id: taxonomyId,
-        shipping_profile_id: shippingId,
+        shipping_profile_id: finalShippingId,
         tags,
         state,
         should_auto_renew: true,
