@@ -394,6 +394,8 @@ onAuthStateChanged(auth, user => {
     email: user.email,
     displayName: user.displayName || ''
   }, { merge: true }).catch(e => console.warn('users kayıt hatası:', e));
+  // Kullanıcıları Firestore'dan yükle (mention için)
+  loadUsersFromFirestore();
   // Görevleri yükle
   loadTasksFromFirebase();
 });
@@ -437,9 +439,7 @@ window.fbSignOut = () => {
   <div class="header-sep"></div>
   <span style="font-size:11px;color:var(--gray-400);">Twingo Design · Ekip Paneli</span>
   <div class="header-actions">
-    <button onclick="openUsersModal()" id="users-btn" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--gray-200);color:var(--gray-700);background:var(--gray-50);cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;">
-      👥 Kullanıcılar <span id="users-badge" style="background:var(--accent);color:#fff;border-radius:10px;padding:1px 6px;font-size:10px;font-weight:700;display:none;">0</span>
-    </button>
+
     <span id="user-display-name" style="font-size:11px;color:var(--gray-400);"></span>
     <button onclick="window.fbSignOut()" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--gray-200);color:var(--gray-500);background:var(--gray-50);cursor:pointer;font-family:inherit;">Çıkış</button>
     <a href="index.html" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid var(--gray-200);color:var(--gray-500);text-decoration:none;background:var(--gray-50);">← Ana Sayfa</a>
@@ -597,19 +597,7 @@ window.fbSignOut = () => {
 </div>
 
 <!-- USERS MODAL -->
-<div class="modal-overlay" id="users-modal">
-  <div class="modal-box" style="width:360px;">
-    <div class="modal-title">👥 Kullanıcılar</div>
-    <div style="display:flex;gap:8px;">
-      <input class="modal-inp" type="text" id="new-user-inp" placeholder="Kullanıcı adı (örn: Yasir)" maxlength="30" onkeydown="if(event.key==='Enter')addUser()">
-      <button class="btn btn-primary" onclick="addUser()" style="white-space:nowrap;">+ Ekle</button>
-    </div>
-    <div id="users-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;"></div>
-    <div class="modal-footer">
-      <button class="btn btn-primary" onclick="closeUsersModal()">Kapat</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- MENTION DROPDOWN -->
 <div id="mention-dropdown" style="display:none;position:fixed;z-index:9999;background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);min-width:160px;overflow:hidden;"></div>
@@ -652,36 +640,28 @@ let _confirmResolve = null;
 
 // ── KULLANICILAR & MENTION ────────────────────────────────
 const USER_COLORS = ['#e05c2a','#2563eb','#16a34a','#7c3aed','#ca8a04','#dc2626','#0891b2','#be185d'];
-let users = JSON.parse(localStorage.getItem('twingo_team_users') || '[]');
+// users artık Firestore'dan geliyor - onAuthStateChanged'de yükleniyor
+let users = [];
 
-function saveUsers() { localStorage.setItem('twingo_team_users', JSON.stringify(users)); }
 function getUserColor(name) { let h=0; for(let c of name) h=c.charCodeAt(0)+((h<<5)-h); return USER_COLORS[Math.abs(h)%USER_COLORS.length]; }
 
-function openUsersModal() { renderUsersList(); document.getElementById('users-modal').classList.add('show'); setTimeout(()=>document.getElementById('new-user-inp').focus(),100); }
-function closeUsersModal() { document.getElementById('users-modal').classList.remove('show'); }
-
-function addUser() {
-  const name = document.getElementById('new-user-inp').value.trim();
-  if (!name) return;
-  if (users.find(u=>u.name.toLowerCase()===name.toLowerCase())) { showToast('Bu kullanıcı zaten var.'); return; }
-  users.push({id:'u_'+Date.now(), name, color:getUserColor(name)});
-  saveUsers(); renderUsersList(); updateUsersBadge();
-  document.getElementById('new-user-inp').value='';
+// Firestore users koleksiyonundan yükle
+async function loadUsersFromFirestore() {
+  try {
+    const { _db, _collection, _getDocs } = window;
+    if (!_db) return;
+    const snap = await _getDocs(_collection(_db, 'users'));
+    users = [];
+    snap.forEach(d => {
+      const u = d.data();
+      const name = u.displayName || u.email.split('@')[0];
+      users.push({ id: u.uid, name, email: u.email, color: getUserColor(name) });
+    });
+  } catch(e) { console.warn('users yüklenemedi:', e); }
 }
 
-function deleteUser(id) { users=users.filter(u=>u.id!==id); saveUsers(); renderUsersList(); updateUsersBadge(); }
-
-function renderUsersList() {
-  const list = document.getElementById('users-list');
-  if (!users.length) { list.innerHTML='<div style="text-align:center;padding:16px;color:var(--gray-400);font-size:12px;">Henüz kullanıcı eklenmedi</div>'; return; }
-  list.innerHTML = users.map(u=>`<div class="user-row"><div class="user-avatar" style="background:${u.color};">${u.name[0].toUpperCase()}</div><div class="user-name">@${u.name}</div><button class="user-del" onclick="deleteUser('${u.id}')">×</button></div>`).join('');
-}
-
-function updateUsersBadge() {
-  const badge = document.getElementById('users-badge');
-  badge.textContent = users.length;
-  badge.style.display = users.length ? 'inline' : 'none';
-}
+// Eski fonksiyonlar - artık kullanılmıyor ama referans kalmasın diye boş bırakıldı
+function updateUsersBadge() {}
 
 // @ Mention sistemi
 let _mActive=false, _mStart=0, _mTarget=null;
