@@ -510,10 +510,31 @@ window.publishListings = async (state) => {
     document.getElementById(`pt-${i}`).style.color = 'var(--gray-700)';
 
     try {
-      // Token refresh kontrolü
       let token = store.token.access_token;
 
-      // Listing oluştur
+      // readiness_state_id al (Etsy yeni zorunlu alan)
+      let readinessStateId = null;
+      try {
+        const rdRes = await fetch(FUNCTION_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'api',
+            endpoint: `application/shops/${store.shopId}/readiness-state-definitions`,
+            access_token: token
+          })
+        });
+        const rdData = await rdRes.json();
+        const defs = rdData.results || rdData.readiness_state_definitions || [];
+        if (defs.length > 0) {
+          // İlk (varsayılan) profili kullan
+          readinessStateId = defs[0].readiness_state_id;
+        }
+      } catch(e) {
+        console.warn('readiness_state_id alınamadı:', e);
+      }
+
+      // Listing body
       const listingBody = {
         quantity: qty,
         title,
@@ -530,6 +551,7 @@ window.publishListings = async (state) => {
         materials: [],
         shop_section_id: null,
       };
+      if (readinessStateId) listingBody.readiness_state_id = readinessStateId;
 
       const res = await fetch(FUNCTION_URL, {
         method: 'POST',
