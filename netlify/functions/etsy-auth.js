@@ -64,15 +64,20 @@ exports.handler = async (event) => {
 
   // ── ETSY API PROXY ────────────────────────────────────
   if (params.action === 'api' || body.action === 'api') {
-    const { endpoint, access_token } = body;
+    const { endpoint, access_token, method = 'GET', body: reqBody } = body;
     try {
-      const response = await fetch(`https://openapi.etsy.com/v3/${endpoint}`, {
+      const fetchOpts = {
+        method,
         headers: {
-          'x-api-key': `${ETSY_KEY}:${ETSY_SECRET}`,
+          'x-api-key': ETSY_KEY,
           'Authorization': `Bearer ${access_token}`,
           'Content-Type': 'application/json'
         }
-      });
+      };
+      if (reqBody && method !== 'GET') {
+        fetchOpts.body = JSON.stringify(reqBody);
+      }
+      const response = await fetch(`https://openapi.etsy.com/v3/${endpoint}`, fetchOpts);
       const data = await response.json();
       return { statusCode: 200, headers, body: JSON.stringify(data) };
     } catch(e) {
