@@ -74,6 +74,36 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
 /* Charts */
 .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; margin-bottom: 20px; }
 @media (max-width: 768px) { .charts-grid { grid-template-columns: 1fr; } }
+
+/* Dashboard main layout with sidebar */
+.dashboard-layout { display: grid; grid-template-columns: 1fr 280px; gap: 16px; align-items: start; }
+@media (max-width: 1024px) { .dashboard-layout { grid-template-columns: 1fr; } }
+.dashboard-main { min-width: 0; }
+
+/* Orders sidebar card */
+.orders-sidebar {
+  background: var(--white); border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm);
+  position: sticky; top: 20px;
+}
+.orders-sidebar-title { font-size: 13px; font-weight: 700; color: var(--gray-900); margin-bottom: 4px; }
+.orders-sidebar-sub { font-size: 11px; color: var(--gray-400); margin-bottom: 16px; }
+.store-order-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--gray-100);
+}
+.store-order-row:last-child { border-bottom: none; }
+.store-order-name { font-size: 12px; font-weight: 600; color: var(--gray-700); max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.store-order-meta { font-size: 10px; color: var(--gray-400); margin-top: 2px; }
+.order-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 32px; height: 32px; padding: 0 8px;
+  border-radius: 10px; font-size: 14px; font-weight: 800;
+  background: #7f1d1d; color: #fff; letter-spacing: -0.02em;
+}
+.order-badge.zero { background: var(--gray-100); color: var(--gray-400); font-size: 12px; font-weight: 600; }
+.order-badge.positive { background: #7f1d1d; color: #fff; }
+.sidebar-loading { text-align: center; padding: 24px; color: var(--gray-400); font-size: 12px; }
 .chart-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); }
 .chart-title { font-size: 13px; font-weight: 600; color: var(--gray-900); margin-bottom: 14px; }
 
@@ -155,19 +185,29 @@ tr:hover td { background: var(--gray-50); }
       <div class="stat-card"><div class="stat-label">Aktif Listing</div><div class="stat-value" id="stat-listings">-</div><div class="stat-sub"></div></div>
     </div>
 
-    <!-- Charts -->
-    <div class="charts-grid">
-      <div class="chart-card">
-        <div class="chart-title">📈 Günlük Satış</div>
-        <canvas id="revenue-chart" height="180"></canvas>
+    <div class="dashboard-layout">
+      <!-- Sol: Stats + Charts -->
+      <div class="dashboard-main">
+        <!-- Charts -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title">📈 Günlük Satış</div>
+            <canvas id="revenue-chart" height="180"></canvas>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">🏆 En Çok Satan</div>
+            <div id="top-listings"></div>
+          </div>
+        </div>
       </div>
-      <div class="chart-card">
-        <div class="chart-title">🏆 En Çok Satan</div>
-        <div id="top-listings"></div>
+
+      <!-- Sağ: Tüm Mağazalar Sipariş Özeti -->
+      <div class="orders-sidebar">
+        <div class="orders-sidebar-title">📦 Mağaza Siparişleri</div>
+        <div class="orders-sidebar-sub">Bugün / Dün karşılaştırması</div>
+        <div id="stores-orders-list"><div class="sidebar-loading">Yükleniyor...</div></div>
       </div>
     </div>
-
-
 
   </div>
 </div>
@@ -416,6 +456,62 @@ window.handleEtsyCallback = async (code, state) => {
   }
 };
 
+// ── TÜM MAĞAZALAR SİPARİŞ ÖZETİ ──────────────────────
+async function loadAllStoresOrders() {
+  const listEl = document.getElementById('stores-orders-list');
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="sidebar-loading">Yükleniyor...</div>';
+
+  const now = Math.floor(Date.now() / 1000);
+  const todayStart = now - (now % 86400); // bugünün başlangıcı UTC
+  const yesterdayStart = todayStart - 86400;
+
+  const results = await Promise.all(etsyStores.map(async (store) => {
+    try {
+      // Her mağaza için kendi token'ı ile istek at
+      const res = await fetch(FUNCTION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'api',
+          endpoint: `application/shops/${store.shopId}/receipts?limit=100&was_paid=true&min_created=${yesterdayStart}&sort_on=created&sort_order=desc`,
+          access_token: store.token.access_token
+        })
+      });
+      const data = await res.json();
+      const receipts = data.results || [];
+      const todayOrders = receipts.filter(r => r.created_timestamp >= todayStart).length;
+      const yesterdayOrders = receipts.filter(r => r.created_timestamp >= yesterdayStart && r.created_timestamp < todayStart).length;
+      const diff = todayOrders - yesterdayOrders;
+      return { shopName: store.shopName, shopId: store.shopId, todayOrders, yesterdayOrders, diff };
+    } catch(e) {
+      return { shopName: store.shopName, shopId: store.shopId, todayOrders: 0, yesterdayOrders: 0, diff: 0, error: true };
+    }
+  }));
+
+  if (!results.length) {
+    listEl.innerHTML = '<div class="sidebar-loading">Mağaza yok</div>';
+    return;
+  }
+
+  listEl.innerHTML = results.map(r => {
+    const badgeClass = r.diff > 0 ? 'positive' : 'zero';
+    const diffText = r.diff > 0 ? `+${r.diff}` : r.diff === 0 ? '—' : `${r.diff}`;
+    const arrow = r.diff > 0 ? '↑' : r.diff < 0 ? '↓' : '';
+    return `
+    <div class="store-order-row">
+      <div>
+        <div class="store-order-name" title="${r.shopName}">${r.shopName}</div>
+        <div class="store-order-meta">Bugün: ${r.todayOrders} · Dün: ${r.yesterdayOrders}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div class="order-badge ${badgeClass}">${diffText}</div>
+        ${arrow ? `<div style="font-size:9px;color:${r.diff > 0 ? '#991b1b' : '#94a3b8'};">${arrow} fark</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ── API ────────────────────────────────────────────────
 async function etsyAPI(endpoint) {
   // Token süresi kontrolü (~58 dk)
@@ -474,6 +570,8 @@ async function initDashboard() {
     document.getElementById('disconnect-btn').style.display = 'none'; // Artık manage modal'dan
 
     await loadDashboard();
+    // Tüm mağazaların sipariş özetini yükle (async, beklemeden)
+    loadAllStoresOrders();
   } catch(e) {
     console.log('Dashboard init error:', e);
     showConnect();
