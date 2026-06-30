@@ -69,7 +69,7 @@ exports.handler = async (event) => {
       const fetchOpts = {
         method,
         headers: {
-          'x-api-key': ETSY_KEY,
+          'x-api-key': `${ETSY_KEY}:${ETSY_SECRET}`,
           'Authorization': `Bearer ${access_token}`,
           'Content-Type': 'application/json'
         }
