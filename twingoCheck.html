@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Telif Kontrolü — Twingo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f5f5f3; --white: #fff;
+  --gray-50: #fafaf9; --gray-100: #f0f0ee; --gray-200: #e4e4e0;
+  --gray-400: #a8a8a4; --gray-500: #717170; --gray-700: #383836; --gray-900: #141413;
+  --accent: #e05c2a; --accent-light: #fff3ee;
+  --green: #16a34a; --green-light: #f0fdf4;
+  --red: #dc2626; --red-light: #fef2f2;
+  --yellow: #d97706; --yellow-light: #fffbeb;
+  --radius-md: 10px; --radius-lg: 16px; --radius-xl: 22px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06); --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+}
+body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--gray-900); min-height: 100vh; display: flex; flex-direction: column; }
+
+/* HEADER */
+header { height: 52px; background: var(--white); border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; padding: 0 24px; gap: 12px; flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
+.logo { font-size: 14px; font-weight: 700; }
+.logo span { color: var(--accent); }
+.sep { width: 1px; height: 18px; background: var(--gray-200); }
+.sub { font-size: 11px; color: var(--gray-400); }
+.back-btn { margin-left: auto; font-size: 11px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--gray-200); color: var(--gray-500); background: var(--gray-50); cursor: pointer; text-decoration: none; font-family: inherit; }
+
+/* LAYOUT */
+.page { max-width: 960px; margin: 0 auto; padding: 28px 24px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
+
+/* UPLOAD ZONE */
+.upload-zone {
+  border: 2px dashed var(--gray-300); border-radius: var(--radius-xl);
+  background: var(--white); padding: 48px 24px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  cursor: pointer; transition: border-color 0.2s, background 0.2s;
+  text-align: center;
+}
+.upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: var(--accent-light); }
+.upload-zone.has-image { padding: 16px; border-style: solid; border-color: var(--gray-200); }
+.upload-icon { font-size: 40px; }
+.upload-title { font-size: 15px; font-weight: 600; color: var(--gray-700); }
+.upload-sub { font-size: 12px; color: var(--gray-400); }
+.upload-btn-inline { font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-light); border: none; border-radius: 20px; padding: 6px 16px; cursor: pointer; font-family: inherit; }
+
+/* PREVIEW */
+.preview-wrap { position: relative; display: inline-block; }
+.preview-img { max-height: 320px; max-width: 100%; border-radius: var(--radius-lg); object-fit: contain; display: block; margin: 0 auto; box-shadow: var(--shadow-md); }
+.preview-change { position: absolute; bottom: 10px; right: 10px; font-size: 11px; font-weight: 600; background: rgba(0,0,0,0.7); color: #fff; border: none; border-radius: 20px; padding: 5px 12px; cursor: pointer; font-family: inherit; }
+
+/* ANALYSE BTN */
+.analyse-btn { width: 100%; padding: 14px; border-radius: var(--radius-xl); border: none; background: linear-gradient(135deg, #e05c2a, #c94d1e); color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(224,92,42,0.3); transition: transform 0.15s, box-shadow 0.15s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.analyse-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(224,92,42,0.4); }
+.analyse-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* LOADING */
+.loading-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 40px; text-align: center; box-shadow: var(--shadow-sm); }
+.spinner-lg { width: 40px; height: 40px; border: 3px solid var(--gray-200); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: var(--gray-500); }
+.loading-sub { font-size: 12px; color: var(--gray-400); margin-top: 6px; }
+
+/* RESULT CARD */
+.result-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+.result-header { padding: 20px 24px; display: flex; align-items: center; gap: 14px; }
+.result-header.safe { background: var(--green-light); border-bottom: 1px solid #bbf7d0; }
+.result-header.warning { background: var(--yellow-light); border-bottom: 1px solid #fde68a; }
+.result-header.danger { background: var(--red-light); border-bottom: 1px solid #fecaca; }
+.result-icon { font-size: 36px; }
+.result-verdict { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+.result-verdict.safe { color: var(--green); }
+.result-verdict.warning { color: var(--yellow); }
+.result-verdict.danger { color: var(--red); }
+.result-desc { font-size: 13px; color: var(--gray-500); margin-top: 3px; }
+.result-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+/* SECTIONS */
+.section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-400); margin-bottom: 10px; }
+.risk-item { display: flex; gap: 12px; padding: 12px; border-radius: var(--radius-md); background: var(--gray-50); border: 1px solid var(--gray-100); margin-bottom: 8px; }
+.risk-item:last-child { margin-bottom: 0; }
+.risk-badge { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; height: fit-content; text-transform: uppercase; letter-spacing: 0.05em; }
+.risk-high { background: var(--red-light); color: var(--red); }
+.risk-mid { background: var(--yellow-light); color: var(--yellow); }
+.risk-low { background: var(--green-light); color: var(--green); }
+.risk-text { font-size: 13px; color: var(--gray-700); line-height: 1.6; }
+.risk-text strong { color: var(--gray-900); font-weight: 600; }
+
+.safe-list { display: flex; flex-direction: column; gap: 6px; }
+.safe-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--gray-700); }
+.safe-item::before { content: '✓'; color: var(--green); font-weight: 700; flex-shrink: 0; }
+
+.suggest-box { background: var(--accent-light); border: 1px solid #fcd9c7; border-radius: var(--radius-md); padding: 14px 16px; }
+.suggest-box p { font-size: 13px; color: var(--gray-700); line-height: 1.7; }
+
+/* MULTI UPLOAD */
+.multi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 12px; }
+.mini-card { border-radius: var(--radius-md); border: 1.5px solid var(--gray-200); overflow: hidden; position: relative; aspect-ratio: 1; cursor: pointer; transition: border-color 0.15s; }
+.mini-card:hover { border-color: var(--accent); }
+.mini-card img { width: 100%; height: 100%; object-fit: cover; }
+.mini-card .mini-status { position: absolute; bottom: 0; left: 0; right: 0; padding: 4px; font-size: 9px; font-weight: 700; text-align: center; text-transform: uppercase; }
+.mini-card .mini-status.safe { background: rgba(22,163,74,0.85); color: #fff; }
+.mini-card .mini-status.danger { background: rgba(220,38,38,0.85); color: #fff; }
+.mini-card .mini-status.warning { background: rgba(217,119,6,0.85); color: #fff; }
+.mini-card .mini-status.pending { background: rgba(0,0,0,0.5); color: #fff; }
+.mini-del { position: absolute; top: 4px; right: 4px; width: 18px; height: 18px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* HISTORY */
+.history-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); cursor: pointer; transition: background 0.1s; }
+.history-row:last-child { border-bottom: none; }
+.history-row:hover { background: var(--gray-50); margin: 0 -8px; padding: 10px 8px; border-radius: var(--radius-md); }
+.history-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+.history-name { font-size: 12px; font-weight: 600; color: var(--gray-700); }
+.history-time { font-size: 10px; color: var(--gray-400); margin-top: 2px; }
+.history-badge { margin-left: auto; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; flex-shrink: 0; }
+
+/* TABS */
+.tabs { display: flex; gap: 4px; background: var(--gray-100); border-radius: 10px; padding: 3px; }
+.tab { flex: 1; padding: 7px; border-radius: 7px; border: none; font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--gray-500); background: none; transition: background 0.15s, color 0.15s; }
+.tab.active { background: var(--white); color: var(--gray-900); box-shadow: var(--shadow-sm); }
+
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--gray-900); color: #fff; font-size: 12px; font-weight: 500; padding: 8px 18px; border-radius: 20px; z-index: 999; opacity: 0; transition: opacity 0.2s; pointer-events: none; white-space: nowrap; }
+</style>
+</head>
+<body style="visibility:hidden;">
+
+<header>
+  <div class="logo">Twingo <span>Check</span></div>
+  <div class="sep"></div>
+  <div class="sub">Telif Hakkı Analizi</div>
+  <a href="index.html" class="back-btn">← Ana Sayfa</a>
+</header>
+
+<div class="page">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('single')">🔍 Tek Görsel</button>
+    <button class="tab" onclick="switchTab('multi')">📦 Toplu Kontrol</button>
+    <button class="tab" onclick="switchTab('history')">📋 Geçmiş</button>
+  </div>
+
+  <!-- TEK GÖRSEL -->
+  <div id="tab-single">
+    <!-- Upload -->
+    <div class="upload-zone" id="upload-zone"
+      onclick="document.getElementById('file-inp').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="handleDrop(event)">
+      <div id="upload-content">
+        <div class="upload-icon">🖼️</div>
+        <div class="upload-title">Tasarımı buraya sürükle veya tıkla</div>
+        <div class="upload-sub">PNG, JPG, WEBP — Max 10MB</div>
+        <button class="upload-btn-inline" onclick="event.stopPropagation();document.getElementById('file-inp').click()">Dosya Seç</button>
+      </div>
+    </div>
+    <input type="file" id="file-inp" accept="image/*" style="display:none;" onchange="handleFile(event)">
+
+    <!-- Analiz Butonu -->
+    <button class="analyse-btn" id="analyse-btn" onclick="analyse()" disabled>
+      🔍 Telif Analizi Yap
+    </button>
+
+    <!-- Loading -->
+    <div class="loading-card" id="loading-card" style="display:none;">
+      <div class="spinner-lg"></div>
+      <div class="loading-text">Tasarım analiz ediliyor...</div>
+      <div class="loading-sub">Claude Vision görsel üzerinde telif unsurlarını tarıyor</div>
+    </div>
+
+    <!-- Sonuç -->
+    <div id="result-wrap" style="display:none;"></div>
+  </div>
+
+  <!-- TOPLU KONTROL -->
+  <div id="tab-multi" style="display:none;">
+    <div class="upload-zone" style="padding:24px;"
+      onclick="document.getElementById('multi-inp').click()"
+      ondragover="event.preventDefault();this.classList.add('drag')"
+      ondragleave="this.classList.remove('drag')"
+      ondrop="handleMultiDrop(event)">
+      <div class="upload-icon">📦</div>
+      <div class="upload-title">Birden fazla tasarım seç</div>
+      <div class="upload-sub">Tümü sırayla analiz edilir</div>
+      <button class="upload-btn-inline" onclick="event.stopPropagation();document.getElementById('multi-inp').click()">Dosyaları Seç</button>
+    </div>
+    <input type="file" id="multi-inp" accept="image/*" multiple style="display:none;" onchange="handleMultiFile(event)">
+    <div class="multi-grid" id="multi-grid"></div>
+    <button class="analyse-btn" id="multi-btn" onclick="analyseAll()" disabled style="margin-top:16px;">
+      🔍 Tümünü Analiz Et
+    </button>
+    <div id="multi-result" style="margin-top:16px;display:flex;flex-direction:column;gap:12px;"></div>
+  </div>
+
+  <!-- GEÇMİŞ -->
+  <div id="tab-history" style="display:none;">
+    <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:var(--shadow-sm);">
+      <div class="section-title" style="margin-bottom:12px;">Son Analizler</div>
+      <div id="history-list"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<!-- Firebase Auth -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
+import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+
+const app = initializeApp({
+  apiKey: "AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
+  authDomain: "twingostudio-cc351.firebaseapp.com",
+  projectId: "twingostudio-cc351",
+  storageBucket: "twingostudio-cc351.firebasestorage.app",
+  messagingSenderId: "236093689838",
+  appId: "1:236093689838:web:b502546fdf61b1cc6288ff"
+});
+const auth = getAuth(app);
+onAuthStateChanged(auth, user => {
+  if (!user) { window.location.href = 'login.html'; return; }
+  document.body.style.visibility = 'visible';
+  renderHistory();
+});
+</script>
+
+<script>
+// ── STATE ──────────────────────────────────────────────
+let currentImage = null; // { base64, mimeType, name, preview }
+let multiImages = [];
+let history = JSON.parse(localStorage.getItem('twingo_check_history') || '[]');
+
+const SYSTEM_PROMPT = `Sen bir telif hakkı ve marka uzmanısın. Kullanıcı sana bir ürün tasarımı görseli gönderiyor.
+
+Görevin:
+1. Görseli dikkatlice incele
+2. Telif hakkı, marka ve ticari marka ihlali açısından analiz et
+3. Şunları kontrol et:
+   - Bilinen karakterler (Disney, Marvel, DC, anime, oyun karakterleri vs.)
+   - Marka logoları ve logotype'lar
+   - Film/dizi/müzik referansları
+   - Spor takımı logoları ve isimler
+   - Sanatçı eserleri veya ikonlar
+   - Korumalı font ve tipografi
+   - Ünlü kişi portreleri (Etsy'de riskli)
+
+Yanıtını SADECE şu JSON formatında ver, başka hiçbir şey yazma:
+{
+  "verdict": "safe" | "warning" | "danger",
+  "summary": "Tek cümle özet",
+  "risks": [
+    {
+      "level": "high" | "mid" | "low",
+      "element": "Tespit edilen unsur",
+      "detail": "Neden risk oluşturduğu ve hangi hak sahibinin etkilenebileceği"
+    }
+  ],
+  "safe_elements": ["Telifsiz unsur 1", "Telifsiz unsur 2"],
+  "recommendation": "Ne yapmalısın - satabilir misin, değiştirilmeli mi, sakıncalı mı"
+}
+
+verdict açıklaması:
+- safe: Hiçbir telif riski yok, güvenle listing yapabilirsin
+- warning: Dikkat edilmesi gereken unsurlar var, bazı değişiklikler önerilir  
+- danger: Ciddi telif/marka ihlali riski var, listing yapma`;
+
+// ── UPLOAD ─────────────────────────────────────────────
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (file) loadImage(file);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) loadImage(file);
+}
+
+function loadImage(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const dataUrl = ev.target.result;
+    currentImage = {
+      base64: dataUrl.split(',')[1],
+      mimeType: file.type || 'image/jpeg',
+      name: file.name,
+      preview: dataUrl
+    };
+    // Upload zone'u preview'a çevir
+    const zone = document.getElementById('upload-zone');
+    zone.classList.add('has-image');
+    zone.onclick = null;
+    zone.innerHTML = `
+      <div class="preview-wrap">
+        <img class="preview-img" src="${dataUrl}" alt="Tasarım">
+        <button class="preview-change" onclick="resetUpload()">↺ Değiştir</button>
+      </div>`;
+    document.getElementById('analyse-btn').disabled = false;
+    document.getElementById('result-wrap').style.display = 'none';
+    document.getElementById('loading-card').style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+window.resetUpload = () => {
+  currentImage = null;
+  const zone = document.getElementById('upload-zone');
+  zone.classList.remove('has-image');
+  zone.onclick = () => document.getElementById('file-inp').click();
+  zone.innerHTML = `
+    <div id="upload-content">
+      <div class="upload-icon">🖼️</div>
+      <div class="upload-title">Tasarımı buraya sürükle veya tıkla</div>
+      <div class="upload-sub">PNG, JPG, WEBP — Max 10MB</div>
+      <button class="upload-btn-inline" onclick="event.stopPropagation();document.getElementById('file-inp').click()">Dosya Seç</button>
+    </div>`;
+  document.getElementById('analyse-btn').disabled = true;
+  document.getElementById('result-wrap').style.display = 'none';
+};
+
+// ── ANALİZ ─────────────────────────────────────────────
+window.analyse = async () => {
+  if (!currentImage) return;
+  document.getElementById('analyse-btn').disabled = true;
+  document.getElementById('loading-card').style.display = 'block';
+  document.getElementById('result-wrap').style.display = 'none';
+
+  try {
+    const result = await callClaudeVision(currentImage);
+    saveHistory(currentImage.name, currentImage.preview, result);
+    renderResult(result);
+  } catch(e) {
+    showToast('❌ Analiz hatası: ' + e.message);
+  }
+  document.getElementById('analyse-btn').disabled = false;
+  document.getElementById('loading-card').style.display = 'none';
+};
+
+async function callClaudeVision(img) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1000,
+      system: SYSTEM_PROMPT,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: img.mimeType, data: img.base64 } },
+          { type: 'text', text: 'Bu tasarımı telif hakkı açısından analiz et.' }
+        ]
+      }]
+    })
+  });
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message);
+  const text = data.content[0].text.trim();
+  const clean = text.replace(/```json|```/g, '').trim();
+  return JSON.parse(clean);
+}
+
+// ── RENDER RESULT ──────────────────────────────────────
+function renderResult(r) {
+  const wrap = document.getElementById('result-wrap');
+  wrap.style.display = 'block';
+
+  const verdictMap = {
+    safe:    { icon: '✅', label: 'Telif Riski Yok',       cls: 'safe',    desc: 'Bu tasarımı güvenle listing yapabilirsin.' },
+    warning: { icon: '⚠️', label: 'Dikkat Gerekiyor',      cls: 'warning', desc: 'Bazı unsurlar risk taşıyor, değişiklik önerilir.' },
+    danger:  { icon: '🚫', label: 'Ciddi Telif Riski',     cls: 'danger',  desc: 'Bu tasarımı listing yapma, telif ihlali riski yüksek.' }
+  };
+  const v = verdictMap[r.verdict] || verdictMap.warning;
+
+  const risksHtml = (r.risks || []).map(risk => `
+    <div class="risk-item">
+      <div class="risk-badge risk-${risk.level === 'high' ? 'high' : risk.level === 'mid' ? 'mid' : 'low'}">
+        ${risk.level === 'high' ? 'Yüksek' : risk.level === 'mid' ? 'Orta' : 'Düşük'}
+      </div>
+      <div class="risk-text">
+        <strong>${risk.element}</strong><br>${risk.detail}
+      </div>
+    </div>`).join('');
+
+  const safeHtml = (r.safe_elements || []).length
+    ? `<div class="safe-list">${(r.safe_elements).map(s => `<div class="safe-item">${s}</div>`).join('')}</div>`
+    : '';
+
+  wrap.innerHTML = `
+    <div class="result-card">
+      <div class="result-header ${v.cls}">
+        <div class="result-icon">${v.icon}</div>
+        <div>
+          <div class="result-verdict ${v.cls}">${v.label}</div>
+          <div class="result-desc">${r.summary || v.desc}</div>
+        </div>
+      </div>
+      <div class="result-body">
+        ${risksHtml ? `<div>
+          <div class="section-title">Tespit Edilen Riskler</div>
+          ${risksHtml}
+        </div>` : ''}
+        ${safeHtml ? `<div>
+          <div class="section-title">Güvenli Unsurlar</div>
+          ${safeHtml}
+        </div>` : ''}
+        ${r.recommendation ? `<div>
+          <div class="section-title">Öneri</div>
+          <div class="suggest-box"><p>${r.recommendation}</p></div>
+        </div>` : ''}
+      </div>
+    </div>`;
+}
+
+// ── TOPLU KONTROL ──────────────────────────────────────
+function handleMultiFile(e) {
+  Array.from(e.target.files).forEach(f => addMultiImage(f));
+}
+
+function handleMultiDrop(e) {
+  e.preventDefault();
+  Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/')).forEach(addMultiImage);
+}
+
+function addMultiImage(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    multiImages.push({ base64: ev.target.result.split(',')[1], mimeType: file.type, name: file.name, preview: ev.target.result, status: 'pending', result: null });
+    renderMultiGrid();
+    document.getElementById('multi-btn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderMultiGrid() {
+  const grid = document.getElementById('multi-grid');
+  grid.innerHTML = multiImages.map((img, i) => `
+    <div class="mini-card" onclick="showMultiResult(${i})">
+      <img src="${img.preview}" alt="">
+      <button class="mini-del" onclick="event.stopPropagation();removeMultiImg(${i})">×</button>
+      <div class="mini-status ${img.status}">${
+        img.status === 'pending' ? 'Bekliyor' :
+        img.status === 'loading' ? '...' :
+        img.status === 'safe' ? 'Güvenli' :
+        img.status === 'warning' ? 'Dikkat' : 'Riskli'
+      }</div>
+    </div>`).join('');
+}
+
+window.removeMultiImg = (i) => { multiImages.splice(i,1); renderMultiGrid(); if(!multiImages.length) document.getElementById('multi-btn').disabled=true; };
+
+window.analyseAll = async () => {
+  document.getElementById('multi-btn').disabled = true;
+  document.getElementById('multi-result').innerHTML = '';
+  for (let i = 0; i < multiImages.length; i++) {
+    multiImages[i].status = 'loading';
+    renderMultiGrid();
+    try {
+      const r = await callClaudeVision(multiImages[i]);
+      multiImages[i].result = r;
+      multiImages[i].status = r.verdict;
+      saveHistory(multiImages[i].name, multiImages[i].preview, r);
+    } catch(e) {
+      multiImages[i].status = 'danger';
+    }
+    renderMultiGrid();
+    await new Promise(r => setTimeout(r, 500)); // rate limit
+  }
+  renderMultiSummary();
+  document.getElementById('multi-btn').disabled = false;
+};
+
+function renderMultiSummary() {
+  const safe = multiImages.filter(i => i.status === 'safe').length;
+  const warn = multiImages.filter(i => i.status === 'warning').length;
+  const danger = multiImages.filter(i => i.status === 'danger').length;
+  document.getElementById('multi-result').innerHTML = `
+    <div style="background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:16px 20px;box-shadow:var(--shadow-sm);">
+      <div class="section-title" style="margin-bottom:12px;">Analiz Özeti</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="background:var(--green-light);border-radius:10px;padding:12px 20px;text-align:center;flex:1;min-width:80px;">
+          <div style="font-size:22px;font-weight:800;color:var(--green);">${safe}</div>
+          <div style="font-size:11px;color:var(--green);font-weight:600;">Güvenli</div>
+        </div>
+        <div style="background:var(--yellow-light);border-radius:10px;padding:12px 20px;text-align:center;flex:1;min-width:80px;">
+          <div style="font-size:22px;font-weight:800;color:var(--yellow);">${warn}</div>
+          <div style="font-size:11px;color:var(--yellow);font-weight:600;">Dikkat</div>
+        </div>
+        <div style="background:var(--red-light);border-radius:10px;padding:12px 20px;text-align:center;flex:1;min-width:80px;">
+          <div style="font-size:22px;font-weight:800;color:var(--red);">${danger}</div>
+          <div style="font-size:11px;color:var(--red);font-weight:600;">Riskli</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+window.showMultiResult = (i) => {
+  const img = multiImages[i];
+  if (!img.result) return;
+  switchTab('single');
+  currentImage = img;
+  const zone = document.getElementById('upload-zone');
+  zone.classList.add('has-image');
+  zone.onclick = null;
+  zone.innerHTML = `<div class="preview-wrap"><img class="preview-img" src="${img.preview}" alt=""><button class="preview-change" onclick="resetUpload()">↺ Değiştir</button></div>`;
+  document.getElementById('analyse-btn').disabled = false;
+  renderResult(img.result);
+};
+
+// ── GEÇMİŞ ────────────────────────────────────────────
+function saveHistory(name, preview, result) {
+  history.unshift({ name, preview, result, time: Date.now() });
+  if (history.length > 50) history = history.slice(0, 50);
+  localStorage.setItem('twingo_check_history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (!list) return;
+  if (!history.length) { list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--gray-400);font-size:13px;">Henüz analiz yapılmadı.</div>'; return; }
+  const verdictLabel = { safe: 'Güvenli', warning: 'Dikkat', danger: 'Riskli' };
+  const verdictColor = { safe: 'background:var(--green-light);color:var(--green)', warning: 'background:var(--yellow-light);color:var(--yellow)', danger: 'background:var(--red-light);color:var(--red)' };
+  list.innerHTML = history.slice(0, 20).map((h, i) => `
+    <div class="history-row" onclick="loadFromHistory(${i})">
+      <img class="history-thumb" src="${h.preview}" alt="">
+      <div>
+        <div class="history-name">${h.name}</div>
+        <div class="history-time">${new Date(h.time).toLocaleDateString('tr-TR', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}</div>
+      </div>
+      <div class="history-badge" style="${verdictColor[h.result?.verdict] || ''}">${verdictLabel[h.result?.verdict] || '?'}</div>
+    </div>`).join('');
+}
+
+window.loadFromHistory = (i) => {
+  const h = history[i];
+  switchTab('single');
+  currentImage = { base64: '', preview: h.preview, name: h.name };
+  const zone = document.getElementById('upload-zone');
+  zone.classList.add('has-image');
+  zone.onclick = null;
+  zone.innerHTML = `<div class="preview-wrap"><img class="preview-img" src="${h.preview}" alt=""><button class="preview-change" onclick="resetUpload()">↺ Değiştir</button></div>`;
+  document.getElementById('analyse-btn').disabled = true; // geçmişten tekrar analiz için dosya gerekli
+  renderResult(h.result);
+};
+
+// ── TABS ───────────────────────────────────────────────
+window.switchTab = (tab) => {
+  ['single','multi','history'].forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === tab ? 'flex' : 'none';
+    document.getElementById('tab-' + t).style.flexDirection = 'column';
+    document.getElementById('tab-' + t).style.gap = '16px';
+  });
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', ['single','multi','history'][i] === tab);
+  });
+  if (tab === 'history') renderHistory();
+};
+switchTab('single');
+
+// ── TOAST ──────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.style.opacity = '1';
+  setTimeout(() => t.style.opacity = '0', 3000);
+}
+</script>
+</body>
+</html>
