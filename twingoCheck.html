@@ -341,25 +341,30 @@ window.analyse = async () => {
   document.getElementById('loading-card').style.display = 'none';
 };
 
+const FUNCTION_URL = 'https://twingostudio.netlify.app/.netlify/functions/etsy-auth';
+
 async function callClaudeVision(img) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch(FUNCTION_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 1000,
-      system: SYSTEM_PROMPT,
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'image', source: { type: 'base64', media_type: img.mimeType, data: img.base64 } },
-          { type: 'text', text: 'Bu tasarımı telif hakkı açısından analiz et.' }
-        ]
-      }]
+      action: 'claude',
+      payload: {
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: img.mimeType, data: img.base64 } },
+            { type: 'text', text: 'Bu tasarımı telif hakkı açısından analiz et.' }
+          ]
+        }]
+      }
     })
   });
   const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
+  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
   const text = data.content[0].text.trim();
   const clean = text.replace(/```json|```/g, '').trim();
   return JSON.parse(clean);
