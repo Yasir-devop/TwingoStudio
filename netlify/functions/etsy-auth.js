@@ -142,24 +142,5 @@ exports.handler = async (event) => {
     }
   }
 
-  // ── CLAUDE PROXY ─────────────────────────────────────
-  if (params.action === 'claude' || body.action === 'claude') {
-    try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'anthropic-version': '2023-06-01',
-          'x-api-key': process.env.ANTHROPIC_API_KEY || ''
-        },
-        body: JSON.stringify(body.payload)
-      });
-      const data = await response.json();
-      return { statusCode: 200, headers, body: JSON.stringify(data) };
-    } catch(e) {
-      return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
-    }
-  }
-
   return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 };
