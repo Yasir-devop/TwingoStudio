@@ -109,7 +109,7 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
       <input class="inp" type="url" id="etsy-url" placeholder="https://www.etsy.com/listing/..." onkeydown="if(event.key==='Enter')generate()">
       <button class="analyse-btn" id="gen-btn" onclick="generate()">✨ Üret</button>
     </div>
-    <div class="hint">Etsy listing sayfasının URL'sini yapıştır. Mevcut title ve taglar okunacak, 4 farklı SEO seti oluşturulacak.</div>
+    <div class="hint">Etsy listing sayfasının URL'sini yapıştır. Title ve taglar otomatik okunacak, 4 farklı SEO seti oluşturulacak.</div>
   </div>
 
   <!-- LOADING -->
@@ -164,8 +164,8 @@ function setStep(n) {
 
 window.generate = async () => {
   const url = document.getElementById('etsy-url').value.trim();
-  if (!url || !url.includes('etsy.com/listing')) {
-    showToast('❌ Geçerli bir Etsy listing URL\'i gir');
+  if (!url || !url.includes('etsy.com')) {
+    showToast('❌ Geçerli bir Etsy listing URL gir');
     return;
   }
 
@@ -182,13 +182,11 @@ window.generate = async () => {
       body: JSON.stringify({ action: 'scrape', url })
     });
     const scrapeData = await scrapeRes.json();
-    if (scrapeData.error) throw new Error('Sayfa okunamadı: ' + scrapeData.error);
-
+    if (scrapeData.error) throw new Error(scrapeData.error);
     const { title: originalTitle, tags: originalTags } = scrapeData;
 
-    // Adım 2: Analiz
     setStep(2);
-    await new Promise(r => setTimeout(r, 500));
+    await new Promise(r => setTimeout(r, 300));
 
     // Adım 3: ChatGPT ile 3 yeni set üret
     setStep(3);

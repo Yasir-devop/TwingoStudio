@@ -145,33 +145,92 @@ exports.handler = async (event) => {
   // ── ETSY SCRAPE ──────────────────────────────────────
   if (params.action === 'scrape' || body.action === 'scrape') {
     const { url } = body;
-    try {
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-        }
-      });
-      const html = await res.text();
 
-      // Title çek
+    async function tryFetch(fetchUrl, opts = {}) {
+      const res = await fetch(fetchUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept-Encoding': 'gzip, deflate, br',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Upgrade-Insecure-Requests': '1',
+          ...opts.headers
+        },
+        redirect: 'follow',
+        ...opts
+      });
+      return res.text();
+    }
+
+    function parseHtml(html) {
       let title = '';
-      const titleMatch = html.match(/"title"\s*:\s*"([^"]{10,200})"/);
-      if (titleMatch) title = titleMatch[1].replace(/\u[\dA-F]{4}/gi, c => String.fromCharCode(parseInt(c.replace(/\u/,''),16)));
+      let tags = [];
+
+      // JSON-LD içinden title
+      const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+      if (jsonLdMatch) {
+        try {
+          const ld = JSON.parse(jsonLdMatch[1]);
+          if (ld.name) title = ld.name;
+          if (ld.keywords) tags = ld.keywords.split(',').map(t => t.trim()).filter(Boolean);
+        } catch(e) {}
+      }
+
+      // og:title fallback
       if (!title) {
         const ogMatch = html.match(/<meta property="og:title" content="([^"]+)"/);
-        if (ogMatch) title = ogMatch[1];
+        if (ogMatch) title = ogMatch[1].replace(/ \| Etsy.*$/,'').trim();
       }
 
-      // Tags çek
-      let tags = [];
-      const tagsMatch = html.match(/"tags"\s*:\s*\[([^\]]+)\]/);
-      if (tagsMatch) {
-        tags = tagsMatch[1].match(/"([^"]+)"/g)?.map(t => t.replace(/"/g,'')) || [];
+      // window.__INITIAL_STATE__ içinden tags
+      if (!tags.length) {
+        const stateMatch = html.match(/listing_tags['"]\s*:\s*\[([^\]]+)\]/);
+        if (stateMatch) {
+          tags = stateMatch[1].match(/"([^"]+)"/g)?.map(t => t.replace(/"/g,'')) || [];
+        }
       }
 
-      if (!title) throw new Error('Title bulunamadı. Listing URL doğru mu?');
+      // data-buy-box-listing-id ile tags
+      if (!tags.length) {
+        const tagsMatch = html.match(/"tags"\s*:\s*\[([^\]]+)\]/);
+        if (tagsMatch) {
+          tags = tagsMatch[1].match(/"([^"]+)"/g)?.map(t => t.replace(/"/g,'')) || [];
+        }
+      }
+
+      return { title, tags };
+    }
+
+    try {
+      // Yöntem 1: Direkt
+      let html = await tryFetch(url);
+      let { title, tags } = parseHtml(html);
+
+      // Yöntem 2: allorigins proxy
+      if (!title) {
+        const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
+        const proxyRes = await fetch(proxyUrl);
+        const proxyData = await proxyRes.json();
+        html = proxyData.contents || '';
+        const parsed = parseHtml(html);
+        title = parsed.title;
+        tags = parsed.tags;
+      }
+
+      // Yöntem 3: corsproxy.io
+      if (!title) {
+        html = await tryFetch('https://corsproxy.io/?' + encodeURIComponent(url));
+        const parsed = parseHtml(html);
+        title = parsed.title;
+        tags = parsed.tags;
+      }
+
+      if (!title) throw new Error('Title bulunamadı. Etsy sayfası erişimi engelledi.');
       return { statusCode: 200, headers, body: JSON.stringify({ title, tags }) };
     } catch(e) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
