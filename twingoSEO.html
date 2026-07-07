@@ -109,7 +109,7 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
       <input class="inp" type="url" id="etsy-url" placeholder="https://www.etsy.com/listing/..." onkeydown="if(event.key==='Enter')generate()">
       <button class="analyse-btn" id="gen-btn" onclick="generate()">✨ Üret</button>
     </div>
-    <div class="hint">Etsy listing sayfasının URL'sini yapıştır. Title ve taglar otomatik okunacak, 4 farklı SEO seti oluşturulacak.</div>
+    <div class="hint">Etsy listing URL'sini yapıştır → title ve taglar otomatik okunur → ChatGPT ile 4 SEO seti oluşturulur.</div>
   </div>
 
   <!-- LOADING -->
@@ -117,7 +117,7 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
     <div class="spinner"></div>
     <div style="font-size:14px;font-weight:600;color:var(--gray-700);">Analiz ediliyor...</div>
     <div class="loading-steps" id="loading-steps">
-      <div class="step-row" id="step-1"><div class="step-dot"></div>Etsy sayfası okunuyor</div>
+      <div class="step-row" id="step-1"><div class="step-dot"></div>Etsy sayfası okunuyor...</div>
       <div class="step-row" id="step-2"><div class="step-dot"></div>Mevcut title & tag analiz ediliyor</div>
       <div class="step-row" id="step-3"><div class="step-dot"></div>ChatGPT ile 3 yeni set üretiliyor</div>
       <div class="step-row" id="step-4"><div class="step-dot"></div>Sonuçlar hazırlanıyor</div>
@@ -153,6 +153,12 @@ onAuthStateChanged(auth, user => {
 <script>
 const FUNCTION_URL = 'https://twingostudio.netlify.app/.netlify/functions/etsy-auth';
 
+window.updateCharCount = () => {
+  const len = document.getElementById('current-title').value.length;
+  const el = document.getElementById('title-len');
+  if (el) { el.textContent = len; el.style.color = len > 130 ? '#d97706' : len > 100 ? '#16a34a' : ''; }
+};
+
 function setStep(n) {
   for (let i = 1; i <= 4; i++) {
     const el = document.getElementById('step-' + i);
@@ -174,7 +180,7 @@ window.generate = async () => {
   document.getElementById('results-wrap').style.display = 'none';
 
   try {
-    // Adım 1: Etsy sayfasını çek
+    // Adım 1: Etsy sayfasını Brightdata ile çek
     setStep(1);
     const scrapeRes = await fetch(FUNCTION_URL, {
       method: 'POST',

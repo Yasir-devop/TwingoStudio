@@ -142,36 +142,37 @@ exports.handler = async (event) => {
     }
   }
 
-  // ── ETSY SCRAPE ──────────────────────────────────────
+  // ── ETSY SCRAPE (Brightdata) ─────────────────────────
   if (params.action === 'scrape' || body.action === 'scrape') {
     const { url } = body;
-
-    async function tryFetch(fetchUrl, opts = {}) {
-      const res = await fetch(fetchUrl, {
+    const BRIGHTDATA_KEY = '98fb7364-0746-4e51-8239-caa78bd72a6c';
+    try {
+      // Brightdata Web Unlocker API
+      const res = await fetch('https://api.brightdata.com/request', {
+        method: 'POST',
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Upgrade-Insecure-Requests': '1',
-          ...opts.headers
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + BRIGHTDATA_KEY
         },
-        redirect: 'follow',
-        ...opts
+        body: JSON.stringify({
+          zone: 'web_unlocker1',
+          url: url,
+          format: 'raw'
+        })
       });
-      return res.text();
-    }
 
-    function parseHtml(html) {
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error('Brightdata hata: ' + errText.slice(0, 200));
+      }
+
+      const html = await res.text();
+
+      // Parse
       let title = '';
       let tags = [];
 
-      // JSON-LD içinden title
+      // JSON-LD
       const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
       if (jsonLdMatch) {
         try {
@@ -184,60 +185,25 @@ exports.handler = async (event) => {
       // og:title fallback
       if (!title) {
         const ogMatch = html.match(/<meta property="og:title" content="([^"]+)"/);
-        if (ogMatch) title = ogMatch[1].replace(/ \| Etsy.*$/,'').trim();
+        if (ogMatch) title = ogMatch[1].replace(/ \| Etsy.*$/, '').trim();
       }
 
-      // window.__INITIAL_STATE__ içinden tags
-      if (!tags.length) {
-        const stateMatch = html.match(/listing_tags['"]\s*:\s*\[([^\]]+)\]/);
-        if (stateMatch) {
-          tags = stateMatch[1].match(/"([^"]+)"/g)?.map(t => t.replace(/"/g,'')) || [];
-        }
-      }
-
-      // data-buy-box-listing-id ile tags
+      // tags fallback
       if (!tags.length) {
         const tagsMatch = html.match(/"tags"\s*:\s*\[([^\]]+)\]/);
         if (tagsMatch) {
-          tags = tagsMatch[1].match(/"([^"]+)"/g)?.map(t => t.replace(/"/g,'')) || [];
+          tags = tagsMatch[1].match(/"([^"]+)"/g)?.map(t => t.replace(/"/g, '')) || [];
         }
       }
 
-      return { title, tags };
-    }
-
-    try {
-      // Yöntem 1: Direkt
-      let html = await tryFetch(url);
-      let { title, tags } = parseHtml(html);
-
-      // Yöntem 2: allorigins proxy
-      if (!title) {
-        const proxyUrl = 'https://api.allorigins.win/get?url=' + encodeURIComponent(url);
-        const proxyRes = await fetch(proxyUrl);
-        const proxyData = await proxyRes.json();
-        html = proxyData.contents || '';
-        const parsed = parseHtml(html);
-        title = parsed.title;
-        tags = parsed.tags;
-      }
-
-      // Yöntem 3: corsproxy.io
-      if (!title) {
-        html = await tryFetch('https://corsproxy.io/?' + encodeURIComponent(url));
-        const parsed = parseHtml(html);
-        title = parsed.title;
-        tags = parsed.tags;
-      }
-
-      if (!title) throw new Error('Title bulunamadı. Etsy sayfası erişimi engelledi.');
+      if (!title) throw new Error('Title bulunamadı. Sayfa doğru mu?');
       return { statusCode: 200, headers, body: JSON.stringify({ title, tags }) };
     } catch(e) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
     }
   }
 
-  // ── CHATGPT ──────────────────────────────────────────
+    // ── CHATGPT ──────────────────────────────────────────
   if (params.action === 'chatgpt' || body.action === 'chatgpt') {
     const { prompt } = body;
     const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
