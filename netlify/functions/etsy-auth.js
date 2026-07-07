@@ -142,62 +142,62 @@ exports.handler = async (event) => {
     }
   }
 
-  // ── ETSY SCRAPE (Brightdata) ─────────────────────────
+  // ── ETSY SCRAPE (Brightdata Dataset) ────────────────
   if (params.action === 'scrape' || body.action === 'scrape') {
     const { url } = body;
     const BRIGHTDATA_KEY = '98fb7364-0746-4e51-8239-caa78bd72a6c';
+    const DATASET_ID = 'gd_ltppk0jdv1jqz25mz';
     try {
-      // Brightdata Web Unlocker API
-      const res = await fetch('https://api.brightdata.com/request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + BRIGHTDATA_KEY
-        },
-        body: JSON.stringify({
-          zone: 'web_unlocker1',
-          url: url,
-          format: 'raw'
-        })
-      });
+      // Brightdata Etsy Dataset API - scrape isteği gönder
+      const triggerRes = await fetch(
+        `https://api.brightdata.com/datasets/v3/scrape?dataset_id=${DATASET_ID}&notify=false&include_errors=true`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + BRIGHTDATA_KEY,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            input: [{ url, all_variations: false }],
+            limit_per_input: null
+          })
+        }
+      );
+      const triggerData = await triggerRes.json();
+      console.log('Brightdata trigger:', JSON.stringify(triggerData));
 
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error('Brightdata hata: ' + errText.slice(0, 200));
-      }
+      // Snapshot ID al
+      const snapshotId = triggerData.snapshot_id;
+      if (!snapshotId) throw new Error('Snapshot ID alınamadı: ' + JSON.stringify(triggerData));
 
-      const html = await res.text();
-
-      // Parse
-      let title = '';
-      let tags = [];
-
-      // JSON-LD
-      const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
-      if (jsonLdMatch) {
-        try {
-          const ld = JSON.parse(jsonLdMatch[1]);
-          if (ld.name) title = ld.name;
-          if (ld.keywords) tags = ld.keywords.split(',').map(t => t.trim()).filter(Boolean);
-        } catch(e) {}
-      }
-
-      // og:title fallback
-      if (!title) {
-        const ogMatch = html.match(/<meta property="og:title" content="([^"]+)"/);
-        if (ogMatch) title = ogMatch[1].replace(/ \| Etsy.*$/, '').trim();
-      }
-
-      // tags fallback
-      if (!tags.length) {
-        const tagsMatch = html.match(/"tags"\s*:\s*\[([^\]]+)\]/);
-        if (tagsMatch) {
-          tags = tagsMatch[1].match(/"([^"]+)"/g)?.map(t => t.replace(/"/g, '')) || [];
+      // Sonuç hazır olana kadar bekle (polling)
+      let result = null;
+      for (let i = 0; i < 20; i++) {
+        await new Promise(r => setTimeout(r, 3000));
+        const snapRes = await fetch(
+          `https://api.brightdata.com/datasets/v3/snapshot/${snapshotId}?format=json`,
+          { headers: { 'Authorization': 'Bearer ' + BRIGHTDATA_KEY } }
+        );
+        if (snapRes.status === 200) {
+          const snapData = await snapRes.json();
+          if (Array.isArray(snapData) && snapData.length > 0) {
+            result = snapData[0];
+            break;
+          }
         }
       }
 
-      if (!title) throw new Error('Title bulunamadı. Sayfa doğru mu?');
-      return { statusCode: 200, headers, body: JSON.stringify({ title, tags }) };
+      if (!result) throw new Error('Veri alınamadı, zaman aşımı.');
+
+      console.log('Brightdata result keys:', Object.keys(result).join(', '));
+
+      // Title ve tags çek
+      const title = result.title || result.listing_title || '';
+      const tags = result.tags || result.keywords || [];
+      const tagsArr = Array.isArray(tags) ? tags : (typeof tags === 'string' ? tags.split(',').map(t => t.trim()) : []);
+
+      if (!title) throw new Error('Title bulunamadı. Listing URL doğru mu?');
+      return { statusCode: 200, headers, body: JSON.stringify({ title, tags: tagsArr }) };
     } catch(e) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
     }
