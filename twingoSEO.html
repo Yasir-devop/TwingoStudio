@@ -104,12 +104,32 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
 
   <!-- GİRİŞ -->
   <div class="card">
-    <div class="card-title">🔗 Etsy Listing Linki</div>
-    <div class="inp-wrap">
-      <input class="inp" type="url" id="etsy-url" placeholder="https://www.etsy.com/listing/..." onkeydown="if(event.key==='Enter')generate()">
-      <button class="analyse-btn" id="gen-btn" onclick="generate()">✨ Üret</button>
+    <div class="card-title">📋 Listing Bilgileri</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">
+          Mevcut Title <span style="color:#dc2626;">*</span>
+          <span style="font-size:10px;color:var(--gray-400);font-weight:400;text-transform:none;margin-left:8px;" id="title-len-badge"></span>
+        </div>
+        <input class="inp" type="text" id="current-title" maxlength="140"
+          placeholder="Etsy listing title'ını buraya yapıştır..."
+          oninput="updateCharCount(this)">
+      </div>
+      <div>
+        <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">
+          Mevcut Tags
+          <span style="font-weight:400;text-transform:none;color:var(--gray-400);">— virgülle ayır</span>
+        </div>
+        <input class="inp" type="text" id="current-tags"
+          placeholder="custom shirt, birthday gift, personalized tee, funny shirt...">
+        <div style="font-size:10px;color:var(--gray-400);margin-top:3px;">
+          💡 Etsy → listing düzenle → Tags bölümünden kopyala
+        </div>
+      </div>
+      <button class="analyse-btn" id="gen-btn" onclick="generate()" style="align-self:flex-start;padding:11px 28px;">
+        ✨ 4 Set Üret
+      </button>
     </div>
-    <div class="hint">Etsy listing URL'sini yapıştır → title ve taglar otomatik okunur → ChatGPT ile 4 SEO seti oluşturulur.</div>
   </div>
 
   <!-- LOADING -->
@@ -117,7 +137,7 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
     <div class="spinner"></div>
     <div style="font-size:14px;font-weight:600;color:var(--gray-700);">Analiz ediliyor...</div>
     <div class="loading-steps" id="loading-steps">
-      <div class="step-row" id="step-1"><div class="step-dot"></div>Etsy sayfası okunuyor...</div>
+      <div class="step-row" id="step-1"><div class="step-dot"></div>Veriler alındı</div>
       <div class="step-row" id="step-2"><div class="step-dot"></div>Mevcut title & tag analiz ediliyor</div>
       <div class="step-row" id="step-3"><div class="step-dot"></div>ChatGPT ile 3 yeni set üretiliyor</div>
       <div class="step-row" id="step-4"><div class="step-dot"></div>Sonuçlar hazırlanıyor</div>
@@ -153,6 +173,15 @@ onAuthStateChanged(auth, user => {
 <script>
 const FUNCTION_URL = 'https://twingostudio.netlify.app/.netlify/functions/etsy-auth';
 
+window.updateCharCount = (inp) => {
+  const len = inp.value.length;
+  const badge = document.getElementById('title-len-badge');
+  if (badge) {
+    badge.textContent = len + '/140';
+    badge.style.color = len > 130 ? '#d97706' : len > 100 ? '#16a34a' : '#a8a8a4';
+  }
+};
+
 window.updateCharCount = () => {
   const len = document.getElementById('current-title').value.length;
   const el = document.getElementById('title-len');
@@ -169,30 +198,21 @@ function setStep(n) {
 }
 
 window.generate = async () => {
-  const url = document.getElementById('etsy-url').value.trim();
-  if (!url || !url.includes('etsy.com')) {
-    showToast('❌ Geçerli bir Etsy listing URL gir');
-    return;
-  }
+  const originalTitle = document.getElementById('current-title').value.trim();
+  const tagsRaw = document.getElementById('current-tags').value.trim();
+
+  if (!originalTitle) { showToast('❌ Title gir'); return; }
+  const originalTags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
 
   document.getElementById('gen-btn').disabled = true;
   document.getElementById('loading-card').style.display = 'block';
   document.getElementById('results-wrap').style.display = 'none';
 
   try {
-    // Adım 1: Etsy sayfasını Brightdata ile çek
     setStep(1);
-    const scrapeRes = await fetch(FUNCTION_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'scrape', url })
-    });
-    const scrapeData = await scrapeRes.json();
-    if (scrapeData.error) throw new Error(scrapeData.error);
-    const { title: originalTitle, tags: originalTags } = scrapeData;
-
+    await new Promise(r => setTimeout(r, 200));
     setStep(2);
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 200));
 
     // Adım 3: ChatGPT ile 3 yeni set üret
     setStep(3);
