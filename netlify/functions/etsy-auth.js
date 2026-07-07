@@ -142,5 +142,68 @@ exports.handler = async (event) => {
     }
   }
 
+  // ── ETSY SCRAPE ──────────────────────────────────────
+  if (params.action === 'scrape' || body.action === 'scrape') {
+    const { url } = body;
+    try {
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
+      });
+      const html = await res.text();
+
+      // Title çek
+      let title = '';
+      const titleMatch = html.match(/"title"\s*:\s*"([^"]{10,200})"/);
+      if (titleMatch) title = titleMatch[1].replace(/\u[\dA-F]{4}/gi, c => String.fromCharCode(parseInt(c.replace(/\u/,''),16)));
+      if (!title) {
+        const ogMatch = html.match(/<meta property="og:title" content="([^"]+)"/);
+        if (ogMatch) title = ogMatch[1];
+      }
+
+      // Tags çek
+      let tags = [];
+      const tagsMatch = html.match(/"tags"\s*:\s*\[([^\]]+)\]/);
+      if (tagsMatch) {
+        tags = tagsMatch[1].match(/"([^"]+)"/g)?.map(t => t.replace(/"/g,'')) || [];
+      }
+
+      if (!title) throw new Error('Title bulunamadı. Listing URL doğru mu?');
+      return { statusCode: 200, headers, body: JSON.stringify({ title, tags }) };
+    } catch(e) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
+    }
+  }
+
+  // ── CHATGPT ──────────────────────────────────────────
+  if (params.action === 'chatgpt' || body.action === 'chatgpt') {
+    const { prompt } = body;
+    const OPENAI_KEY = process.env.OPENAI_API_KEY || '';
+    try {
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + OPENAI_KEY
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          max_tokens: 2000,
+          temperature: 0.7
+        })
+      });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const content = data.choices?.[0]?.message?.content || '';
+      return { statusCode: 200, headers, body: JSON.stringify({ content }) };
+    } catch(e) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
+    }
+  }
+
   return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 };
