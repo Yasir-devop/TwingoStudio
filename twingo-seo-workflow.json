@@ -1,0 +1,189 @@
+{
+  "name": "Twingo SEO Studio",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "twingo-seo",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-node",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.body.url }}",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000,
+          "headers": {
+            "values": [
+              {
+                "name": "User-Agent",
+                "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+              },
+              {
+                "name": "Accept-Language",
+                "value": "en-US,en;q=0.9"
+              },
+              {
+                "name": "Accept",
+                "value": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "http-node",
+      "name": "Fetch Etsy Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const html = $input.first().json.data;\n\nlet title = '';\nlet tags = [];\n\n// JSON-LD parse\nconst jsonLdMatch = html.match(/<script type=\"application\\/ld\\+json\">([\\s\\S]*?)<\\/script>/);\nif (jsonLdMatch) {\n  try {\n    const ld = JSON.parse(jsonLdMatch[1]);\n    if (ld.name) title = ld.name;\n    if (ld.keywords) tags = ld.keywords.split(',').map(t => t.trim()).filter(Boolean);\n  } catch(e) {}\n}\n\n// og:title fallback\nif (!title) {\n  const ogMatch = html.match(/<meta property=\"og:title\" content=\"([^\"]+)\"/);\n  if (ogMatch) title = ogMatch[1].replace(/ \\| Etsy.*$/, '').trim();\n}\n\n// H1 fallback\nif (!title) {\n  const h1Match = html.match(/<h1[^>]*>([^<]+)<\\/h1>/);\n  if (h1Match) title = h1Match[1].trim();\n}\n\n// tags fallback\nif (!tags.length) {\n  const tagsMatch = html.match(/\"tags\"\\s*:\\s*\\[([^\\]]+)\\]/);\n  if (tagsMatch) {\n    tags = tagsMatch[1].match(/\"([^\"]+)\"/g)?.map(t => t.replace(/\"/g, '')) || [];\n  }\n}\n\nif (!title) {\n  throw new Error('Title bulunamadı. Etsy sayfası bot koruması yapıyor olabilir.');\n}\n\nreturn [{ json: { title, tags } }];"
+      },
+      "id": "code-node",
+      "name": "Parse Title & Tags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "resource": "chat",
+        "operation": "message",
+        "modelId": {
+          "value": "gpt-4o-mini"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Sen bir Etsy SEO uzmanısın. Aşağıdaki Etsy listing bilgilerini analiz edip 3 farklı SEO optimizasyonlu title ve tag seti oluştur.\n\nMevcut Title: \"{{ $json.title }}\"\nMevcut Tags: {{ $json.tags.join(', ') }}\n\nKurallar:\n- Her title max 140 karakter olmalı\n- Her set tam olarak 13 tag içermeli  \n- Her tag max 20 karakter olmalı\n- Taglar Etsy alıcılarının gerçekten arama yaptığı anahtar kelimeler olmalı\n- Set 1: Genel SEO odaklı\n- Set 2: Gift/hediye odaklı arama terimleri\n- Set 3: Niş/spesifik uzun kuyruklu kelimeler\n- Sadece İngilizce\n\nYanıtını SADECE bu JSON formatında ver, başka hiçbir şey yazma:\n{\n  \"sets\": [\n    {\n      \"title\": \"...\",\n      \"tags\": [\"tag1\",\"tag2\",\"tag3\",\"tag4\",\"tag5\",\"tag6\",\"tag7\",\"tag8\",\"tag9\",\"tag10\",\"tag11\",\"tag12\",\"tag13\"],\n      \"focus\": \"Setin odak noktası (Türkçe, 1 cümle)\"\n    },\n    { \"title\": \"...\", \"tags\": [...], \"focus\": \"...\" },\n    { \"title\": \"...\", \"tags\": [...], \"focus\": \"...\" }\n  ]\n}"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 2000,
+          "temperature": 0.7
+        }
+      },
+      "id": "openai-node",
+      "name": "ChatGPT SEO",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const gptResponse = $input.first().json.message.content;\nconst originalTitle = $('Parse Title & Tags').first().json.title;\nconst originalTags = $('Parse Title & Tags').first().json.tags;\n\nlet sets = [];\ntry {\n  const clean = gptResponse.replace(/```json|```/g, '').trim();\n  const parsed = JSON.parse(clean);\n  sets = parsed.sets || [];\n} catch(e) {\n  throw new Error('ChatGPT yanıtı parse edilemedi: ' + gptResponse.slice(0, 200));\n}\n\nreturn [{\n  json: {\n    success: true,\n    original: { title: originalTitle, tags: originalTags },\n    sets\n  }\n}];"
+      },
+      "id": "combine-node",
+      "name": "Combine Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "values": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-node",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"success\": false, \"error\": \"{{ $json.message }}\" }",
+        "options": {
+          "responseCode": 500,
+          "responseHeaders": {
+            "values": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "error-respond-node",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1340, 500]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Fetch Etsy Page", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Etsy Page": {
+      "main": [
+        [{ "node": "Parse Title & Tags", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Title & Tags": {
+      "main": [
+        [{ "node": "ChatGPT SEO", "type": "main", "index": 0 }]
+      ]
+    },
+    "ChatGPT SEO": {
+      "main": [
+        [{ "node": "Combine Results", "type": "main", "index": 0 }]
+      ]
+    },
+    "Combine Results": {
+      "main": [
+        [{ "node": "Respond to Webhook", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {}
+}

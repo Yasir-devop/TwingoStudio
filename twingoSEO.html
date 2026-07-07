@@ -104,32 +104,14 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
 
   <!-- GİRİŞ -->
   <div class="card">
-    <div class="card-title">📋 Listing Bilgileri</div>
-    <div style="display:flex;flex-direction:column;gap:12px;">
-      <div>
-        <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">
-          Mevcut Title <span style="color:#dc2626;">*</span>
-          <span style="font-size:10px;color:var(--gray-400);font-weight:400;text-transform:none;margin-left:8px;" id="title-len-badge"></span>
-        </div>
-        <input class="inp" type="text" id="current-title" maxlength="140"
-          placeholder="Etsy listing title'ını buraya yapıştır..."
-          oninput="updateCharCount(this)">
-      </div>
-      <div>
-        <div style="font-size:11px;font-weight:600;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:5px;">
-          Mevcut Tags
-          <span style="font-weight:400;text-transform:none;color:var(--gray-400);">— virgülle ayır</span>
-        </div>
-        <input class="inp" type="text" id="current-tags"
-          placeholder="custom shirt, birthday gift, personalized tee, funny shirt...">
-        <div style="font-size:10px;color:var(--gray-400);margin-top:3px;">
-          💡 Etsy → listing düzenle → Tags bölümünden kopyala
-        </div>
-      </div>
-      <button class="analyse-btn" id="gen-btn" onclick="generate()" style="align-self:flex-start;padding:11px 28px;">
-        ✨ 4 Set Üret
-      </button>
+    <div class="card-title">🔗 Etsy Listing Linki</div>
+    <div class="inp-wrap">
+      <input class="inp" type="url" id="etsy-url"
+        placeholder="https://www.etsy.com/listing/..."
+        onkeydown="if(event.key==='Enter')generate()">
+      <button class="analyse-btn" id="gen-btn" onclick="generate()">✨ Üret</button>
     </div>
+    <div class="hint">Etsy listing URL'sini yapıştır → n8n otomasyonu title & tag okur → ChatGPT ile 4 SEO seti oluşturulur.</div>
   </div>
 
   <!-- LOADING -->
@@ -172,6 +154,8 @@ onAuthStateChanged(auth, user => {
 
 <script>
 const FUNCTION_URL = 'https://twingostudio.netlify.app/.netlify/functions/etsy-auth';
+// n8n webhook URL'ini buraya yaz (n8n'den kopyala)
+const N8N_WEBHOOK_URL = 'https://twingo-studio.app.n8n.cloud/webhook/twingo-seo';
 
 window.updateCharCount = (inp) => {
   const len = inp.value.length;
@@ -198,66 +182,42 @@ function setStep(n) {
 }
 
 window.generate = async () => {
-  const originalTitle = document.getElementById('current-title').value.trim();
-  const tagsRaw = document.getElementById('current-tags').value.trim();
+  const url = document.getElementById('etsy-url').value.trim();
+  if (!url || !url.includes('etsy.com')) {
+    showToast('❌ Geçerli bir Etsy listing URL gir');
+    return;
+  }
 
-  if (!originalTitle) { showToast('❌ Title gir'); return; }
-  const originalTags = tagsRaw.split(',').map(t => t.trim()).filter(Boolean);
+  if (N8N_WEBHOOK_URL === 'N8N_WEBHOOK_URL_BURAYA') {
+    showToast('❌ n8n webhook URL ayarlanmamış');
+    return;
+  }
 
   document.getElementById('gen-btn').disabled = true;
   document.getElementById('loading-card').style.display = 'block';
   document.getElementById('results-wrap').style.display = 'none';
 
   try {
+    // Adım 1: n8n webhook'a gönder
     setStep(1);
-    await new Promise(r => setTimeout(r, 200));
-    setStep(2);
-    await new Promise(r => setTimeout(r, 200));
-
-    // Adım 3: ChatGPT ile 3 yeni set üret
-    setStep(3);
-    const prompt = `Sen bir Etsy SEO uzmanısın. Aşağıdaki Etsy listing bilgilerini analiz edip 3 farklı SEO optimizasyonlu title ve tag seti oluştur.
-
-Mevcut Title: "${originalTitle}"
-Mevcut Tags: ${originalTags.join(', ')}
-
-Kurallar:
-- Her title max 140 karakter olmalı
-- Her set tam olarak 13 tag içermeli
-- Her tag max 20 karakter olmalı
-- Taglar Etsy alıcılarının arama yaptığı gerçek anahtar kelimeler olmalı
-- Her set birbirinden farklı açılardan SEO yapmalı (Set 1: genel, Set 2: gifting odaklı, Set 3: niş/spesifik)
-- Sadece İngilizce
-
-Yanıtını SADECE bu JSON formatında ver, başka hiçbir şey yazma:
-{
-  "sets": [
-    {
-      "title": "...",
-      "tags": ["tag1","tag2","tag3","tag4","tag5","tag6","tag7","tag8","tag9","tag10","tag11","tag12","tag13"],
-      "focus": "Setin odak noktası (Türkçe, 1 cümle)"
-    },
-    { ... },
-    { ... }
-  ]
-}`;
-
-    const gptRes = await fetch(FUNCTION_URL, {
+    const res = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'chatgpt', prompt })
+      body: JSON.stringify({ url })
     });
-    const gptData = await gptRes.json();
-    if (gptData.error) throw new Error('ChatGPT hatası: ' + gptData.error);
 
-    const text = gptData.content.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(text);
+    if (!res.ok) throw new Error('n8n webhook hatası: ' + res.status);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'n8n işlem hatası');
+
+    setStep(2);
+    await new Promise(r => setTimeout(r, 200));
+    setStep(3);
+    await new Promise(r => setTimeout(r, 200));
 
     // Adım 4: Render
     setStep(4);
-    await new Promise(r => setTimeout(r, 300));
-
-    renderResults({ originalTitle, originalTags }, parsed.sets);
+    renderResults(data.original, data.sets);
 
   } catch(e) {
     showToast('❌ ' + e.message);
