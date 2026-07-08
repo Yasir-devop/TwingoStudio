@@ -182,19 +182,24 @@ STEP 4 — TITLE STRUCTURE
 Generate EXACTLY 4 datasets. Each: 1 Title + 13 Tags.
 
 TITLE RULES:
-- 120–140 characters whenever possible
-- Use | between keyword groups
-- Never keyword stuff
+- MINIMUM 130 characters, TARGET 140 characters — titles shorter than 130 chars are REJECTED
+- Use | between keyword groups to fill character space
+- Pack with long-tail keyword phrases to reach 130–140 chars
+- Never keyword stuff but always maximize character count
 - Every title targets slightly different long-tail searches
 - NO numbering, NO bullets, NO labels like "Dataset 1"
+- Count characters carefully — 130 is the floor, 140 is the ceiling
 
 TAG RULES:
 - EXACTLY 13 tags
 - Separated by commas only
 - No bullets, no numbering, no quotes
 - Every tag MUST be 20 characters or fewer — NEVER exceed 20 chars
-- Prioritize high-volume search phrases
+- MUST be long-tail keywords — multi-word phrases preferred (e.g. "custom birthday" not just "birthday")
+- Prioritize high-volume long-tail search phrases buyers actually type
 - Diversify — avoid repeating same words
+- Examples of good long-tail tags: "custom birthday", "personalized tee", "family matching", "birthday gift", "kids birthday shirt"
+- Examples of BAD tags (too short/generic): "shirt", "tee", "gift", "kids", "custom" — avoid single generic words
 
 SEO PRIORITY ORDER:
 1. Exact buyer intent (Custom Birthday Shirt)
@@ -220,13 +225,15 @@ OUTPUT FORMAT — EXACTLY like this, nothing else:
 QUALITY CHECK before outputting:
 - Exactly 4 datasets
 - Every dataset: 1 title + 13 tags
-- Every tag ≤20 characters
+- Every title is between 130–140 characters — COUNT carefully
+- Every tag ≤20 characters AND is a long-tail keyword phrase
 - Birthday customs: "Family Matching Shirts" in title
 - Custom: personalization over artwork
 - Non-custom: bestseller search intent
 - All 4 titles different
-- Tags diversified
-- Output is immediately copy-paste ready for Etsy`;
+- Tags diversified with long-tail phrases
+- Output is immediately copy-paste ready for Etsy
+- REJECT any title under 130 characters and rewrite it longer`;
 
 let currentType = 'custom';
 let currentImage = null;
@@ -346,7 +353,7 @@ function parseAndRender(text) {
   const wrap = document.getElementById('results-wrap');
   wrap.innerHTML = sets.map((set, i) => {
     const len = set.title.length;
-    const lenColor = len > 140 ? '#dc2626' : len > 130 ? '#d97706' : len >= 120 ? '#16a34a' : '#a8a8a4';
+    const lenColor = len > 140 ? '#dc2626' : len >= 130 ? '#16a34a' : '#dc2626'; // kırmızı=<130 veya >140, yeşil=130-140
     const longTags = set.tags.filter(t => t.length > 20);
     const tagsId = 'tags-' + i;
     const titleId = 'title-' + i;
