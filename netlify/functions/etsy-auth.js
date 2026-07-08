@@ -227,28 +227,36 @@ exports.handler = async (event) => {
     }
   }
 
-  // ── GEMINI PROXY ─────────────────────────────────────
-  if (params.action === 'gemini' || body.action === 'gemini') {
-    const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
-    const { prompt, imageBase64, imageMimeType } = body;
+  // ── CLAUDE VISION PROXY ──────────────────────────────
+  if (params.action === 'claude-vision' || body.action === 'claude-vision') {
+    const CLAUDE_KEY = process.env.CLAUDE_API_KEY || '';
+    const { prompt, imageBase64, imageMimeType, systemPrompt } = body;
     try {
-      const parts = [];
+      const content = [];
       if (imageBase64) {
-        parts.push({ inline_data: { mime_type: imageMimeType || 'image/jpeg', data: imageBase64 } });
+        content.push({ type: 'image', source: { type: 'base64', media_type: imageMimeType || 'image/jpeg', data: imageBase64 } });
       }
-      parts.push({ text: prompt });
+      content.push({ type: 'text', text: prompt });
 
-      const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts }] })
-        }
-      );
+      const reqBody = {
+        model: 'claude-haiku-4-5',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content }]
+      };
+      if (systemPrompt) reqBody.system = systemPrompt;
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': CLAUDE_KEY,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify(reqBody)
+      });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const text = data.content?.[0]?.text || '';
       return { statusCode: 200, headers, body: JSON.stringify({ content: text }) };
     } catch(e) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };

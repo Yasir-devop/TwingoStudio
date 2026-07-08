@@ -13,49 +13,41 @@
   --gray-400: #a8a8a4; --gray-500: #717170; --gray-700: #383836; --gray-900: #141413;
   --accent: #e05c2a; --accent-light: #fff3ee;
   --green: #16a34a; --green-light: #f0fdf4;
-  --blue: #2563eb; --blue-light: #eff6ff;
   --radius-md: 10px; --radius-lg: 16px; --radius-xl: 22px;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06); --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
 }
 body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--gray-900); min-height: 100vh; display: flex; flex-direction: column; }
-
 header { height: 52px; background: var(--white); border-bottom: 1px solid var(--gray-200); display: flex; align-items: center; padding: 0 24px; gap: 12px; flex-shrink: 0; position: sticky; top: 0; z-index: 10; }
 .logo { font-size: 14px; font-weight: 700; }
 .logo span { color: var(--accent); }
 .sep { width: 1px; height: 18px; background: var(--gray-200); }
 .sub { font-size: 11px; color: var(--gray-400); }
 .back-btn { margin-left: auto; font-size: 11px; padding: 5px 10px; border-radius: 6px; border: 1px solid var(--gray-200); color: var(--gray-500); background: var(--gray-50); cursor: pointer; text-decoration: none; font-family: inherit; }
-
-.page { max-width: 860px; margin: 0 auto; padding: 28px 24px; width: 100%; display: flex; flex-direction: column; gap: 20px; }
-
+.page { max-width: 860px; margin: 0 auto; padding: 28px 24px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
 .card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 20px; box-shadow: var(--shadow-sm); }
-.card-title { font-size: 13px; font-weight: 700; color: var(--gray-900); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
-
-.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
-.label { font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.06em; display: flex; justify-content: space-between; align-items: center; }
-.inp { width: 100%; padding: 10px 12px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-md); font-family: inherit; font-size: 13px; color: var(--gray-900); background: var(--gray-50); outline: none; transition: border-color 0.15s; }
+.card-title { font-size: 13px; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 12px; }
+.field:last-child { margin-bottom: 0; }
+.label { font-size: 11px; font-weight: 600; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.06em; }
+.inp { width: 100%; padding: 9px 12px; border: 1.5px solid var(--gray-200); border-radius: var(--radius-md); font-family: inherit; font-size: 13px; color: var(--gray-900); background: var(--gray-50); outline: none; transition: border-color 0.15s; }
 .inp:focus { border-color: var(--accent); background: var(--white); }
 .inp::placeholder { color: var(--gray-400); }
-.hint { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
+.hint { font-size: 11px; color: var(--gray-400); margin-top: 3px; }
 
 /* TYPE TOGGLE */
 .type-toggle { display: flex; gap: 8px; }
-.type-btn { flex: 1; padding: 10px; border-radius: var(--radius-md); border: 1.5px solid var(--gray-200); background: var(--gray-50); font-family: inherit; font-size: 13px; font-weight: 600; color: var(--gray-500); cursor: pointer; transition: all 0.15s; text-align: center; }
+.type-btn { flex: 1; padding: 10px 14px; border-radius: var(--radius-md); border: 1.5px solid var(--gray-200); background: var(--gray-50); font-family: inherit; font-size: 13px; font-weight: 600; color: var(--gray-500); cursor: pointer; transition: all 0.15s; text-align: center; }
 .type-btn.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); }
-.type-btn:hover:not(.active) { border-color: var(--gray-400); }
 
 /* IMAGE UPLOAD */
-.img-zone { border: 2px dashed var(--gray-300); border-radius: var(--radius-lg); padding: 28px; text-align: center; cursor: pointer; transition: all 0.15s; background: var(--gray-50); }
+.img-zone { border: 2px dashed var(--gray-300); border-radius: var(--radius-lg); padding: 32px; text-align: center; cursor: pointer; transition: all 0.15s; background: var(--gray-50); }
 .img-zone:hover, .img-zone.drag { border-color: var(--accent); background: var(--accent-light); }
-.img-zone.has-img { padding: 12px; border-style: solid; border-color: var(--gray-200); }
-.img-preview { max-height: 200px; max-width: 100%; border-radius: var(--radius-md); object-fit: contain; display: block; margin: 0 auto; }
-.img-zone-icon { font-size: 28px; margin-bottom: 8px; }
-.img-zone-text { font-size: 13px; font-weight: 600; color: var(--gray-700); }
-.img-zone-sub { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
-.img-change-btn { margin-top: 8px; font-size: 11px; color: var(--gray-500); background: var(--gray-100); border: none; border-radius: 20px; padding: 4px 12px; cursor: pointer; font-family: inherit; }
+.img-zone.has-img { padding: 12px; border-style: solid; border-color: var(--gray-200); cursor: default; }
+.img-preview { max-height: 220px; max-width: 100%; border-radius: var(--radius-md); object-fit: contain; display: block; margin: 0 auto; }
+.img-change-btn { margin-top: 8px; font-size: 11px; color: var(--gray-500); background: var(--gray-100); border: none; border-radius: 20px; padding: 4px 14px; cursor: pointer; font-family: inherit; display: inline-block; }
 
 /* GEN BTN */
-.gen-btn { width: 100%; padding: 13px; border-radius: var(--radius-xl); border: none; background: linear-gradient(135deg, #e05c2a, #c94d1e); color: #fff; font-family: inherit; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(224,92,42,0.3); transition: transform 0.15s, box-shadow 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.gen-btn { width: 100%; padding: 14px; border-radius: var(--radius-xl); border: none; background: linear-gradient(135deg, #e05c2a, #c94d1e); color: #fff; font-family: inherit; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 16px rgba(224,92,42,0.3); transition: transform 0.15s, box-shadow 0.15s; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .gen-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(224,92,42,0.4); }
 .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
@@ -64,25 +56,23 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
 .spinner { width: 36px; height: 36px; border: 3px solid var(--gray-200); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* SET CARDS */
+/* RESULTS */
 .set-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
-.set-header { padding: 12px 18px; background: var(--gray-50); border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
-.set-num { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
-.set-num.original { color: var(--green); }
-.set-focus { font-size: 11px; color: var(--gray-500); }
-.set-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
-.field-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-400); margin-bottom: 6px; display: flex; justify-content: space-between; }
-.title-box { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 10px 14px; font-size: 13px; color: var(--gray-700); line-height: 1.5; }
-.tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
-.tag-chip { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 20px; padding: 3px 12px; font-size: 12px; color: var(--gray-700); }
-.copy-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.set-header { padding: 11px 18px; background: var(--gray-50); border-bottom: 1px solid var(--gray-100); display: flex; align-items: center; justify-content: space-between; }
+.set-label { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
+.set-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.field-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gray-400); margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
+.title-box { background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-md); padding: 10px 14px; font-size: 13px; color: var(--gray-700); line-height: 1.5; word-break: break-word; }
+.tags-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag-chip { background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 20px; padding: 3px 11px; font-size: 11px; color: var(--gray-700); }
+.copy-row { display: flex; gap: 8px; flex-wrap: wrap; padding-top: 4px; }
 .copy-btn { font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 20px; border: 1px solid var(--gray-200); background: var(--white); color: var(--gray-700); cursor: pointer; font-family: inherit; transition: all 0.15s; }
 .copy-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
 .copy-btn.copied { border-color: var(--green); color: var(--green); background: var(--green-light); }
 .copy-all-btn { margin-left: auto; font-size: 11px; font-weight: 700; padding: 6px 16px; border-radius: 20px; border: none; background: var(--gray-900); color: #fff; cursor: pointer; font-family: inherit; }
 .copy-all-btn:hover { background: var(--accent); }
 
-#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--gray-900); color: #fff; font-size: 12px; font-weight: 500; padding: 8px 18px; border-radius: 20px; z-index: 999; opacity: 0; transition: opacity 0.2s; pointer-events: none; white-space: nowrap; }
+#toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--gray-900); color: #fff; font-size: 12px; padding: 8px 18px; border-radius: 20px; z-index: 999; opacity: 0; transition: opacity 0.2s; pointer-events: none; white-space: nowrap; font-weight: 500; }
 </style>
 </head>
 <body style="visibility:hidden;">
@@ -90,53 +80,45 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
 <header>
   <div class="logo">Twingo <span>SEO</span></div>
   <div class="sep"></div>
-  <div class="sub">Title & Tag Üretici</div>
+  <div class="sub">Etsy Title & Tag Üretici</div>
   <a href="index.html" class="back-btn">← Ana Sayfa</a>
 </header>
 
 <div class="page">
 
-  <!-- GİRİŞ KARTI -->
+  <!-- TÜR SEÇİMİ -->
   <div class="card">
     <div class="card-title">🎨 Tasarım Türü</div>
     <div class="type-toggle">
-      <button class="type-btn active" id="btn-family" onclick="setType('family')">👨‍👩‍👧 Family</button>
-      <button class="type-btn" id="btn-custom" onclick="setType('custom')">✏️ Custom</button>
+      <button class="type-btn active" id="btn-custom" onclick="setType('custom')">✏️ Custom (Kişiselleştirilebilir)</button>
+      <button class="type-btn" id="btn-noncustom" onclick="setType('noncustom')">🎯 Non-Custom (Hazır Tasarım)</button>
     </div>
   </div>
 
+  <!-- GÖRSEL -->
   <div class="card">
-    <div class="card-title">🖼️ Tasarım Görseli <span style="font-size:11px;font-weight:400;color:var(--gray-400);">— Gemini görseli analiz edecek</span></div>
+    <div class="card-title">🖼️ Tasarım Görseli <span style="font-size:11px;font-weight:400;color:var(--gray-400);">— zorunlu</span></div>
     <div class="img-zone" id="img-zone"
       onclick="document.getElementById('img-inp').click()"
       ondragover="event.preventDefault();this.classList.add('drag')"
       ondragleave="this.classList.remove('drag')"
       ondrop="handleDrop(event)">
-      <div id="img-placeholder">
-        <div class="img-zone-icon">🖼️</div>
-        <div class="img-zone-text">Görseli buraya sürükle veya tıkla</div>
-        <div class="img-zone-sub">PNG, JPG — Tasarım görselin</div>
+      <div id="img-ph">
+        <div style="font-size:32px;margin-bottom:8px;">🖼️</div>
+        <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Görseli buraya sürükle veya tıkla</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">PNG, JPG desteklenir</div>
       </div>
     </div>
-    <input type="file" id="img-inp" accept="image/*" style="display:none;" onchange="handleImgFile(event)">
+    <input type="file" id="img-inp" accept="image/*" style="display:none;" onchange="handleFile(event)">
   </div>
 
+  <!-- REFERANS (OPSİYONEL) -->
   <div class="card">
-    <div class="card-title">📋 Mevcut Listing Bilgileri <span style="font-size:11px;font-weight:400;color:var(--gray-400);">— opsiyonel</span></div>
+    <div class="card-title">📎 Referans Bilgisi <span style="font-size:11px;font-weight:400;color:var(--gray-400);">— opsiyonel</span></div>
     <div class="field">
-      <div class="label">
-        Mevcut Title
-        <span style="font-size:10px;font-weight:400;color:var(--gray-400);text-transform:none;"><span id="title-len">0</span>/140</span>
-      </div>
-      <input class="inp" type="text" id="inp-title" maxlength="140"
-        placeholder="Varsa mevcut title'ı yapıştır, yoksa boş bırak..."
-        oninput="document.getElementById('title-len').textContent=this.value.length">
-    </div>
-    <div class="field">
-      <div class="label">Mevcut Tags</div>
-      <input class="inp" type="text" id="inp-tags"
-        placeholder="custom shirt, birthday gift, personalized tee... (virgülle ayır)">
-      <div class="hint">💡 Varsa Etsy'den kopyala, yoksa boş bırak — Gemini görselden üretecek</div>
+      <div class="label">Bestseller Title veya Tags</div>
+      <input class="inp" type="text" id="inp-ref" placeholder="Benzer çok satan bir listingden title veya tags yapıştır...">
+      <div class="hint">Varsa benzer bir bestseller listingden title veya tag kopyala — daha iyi sonuç verir</div>
     </div>
   </div>
 
@@ -144,26 +126,25 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
 
   <div class="loading-card" id="loading-card" style="display:none;">
     <div class="spinner"></div>
-    <div style="font-size:14px;font-weight:600;color:var(--gray-700);">Gemini analiz ediyor...</div>
-    <div style="font-size:12px;color:var(--gray-400);margin-top:6px;">Görsel okunuyor, 4 SEO seti oluşturuluyor</div>
+    <div style="font-size:14px;font-weight:600;color:var(--gray-700);">Claude analiz ediyor...</div>
+    <div style="font-size:12px;color:var(--gray-400);margin-top:6px;">Tasarım okunuyor, 4 SEO seti oluşturuluyor</div>
   </div>
 
-  <div id="results-wrap" style="display:flex;flex-direction:column;gap:16px;"></div>
+  <div id="results-wrap" style="display:flex;flex-direction:column;gap:14px;"></div>
 
 </div>
-
 <div id="toast"></div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js';
 import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
 const app = initializeApp({
-  apiKey: "AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
-  authDomain: "twingostudio-cc351.firebaseapp.com",
-  projectId: "twingostudio-cc351",
-  storageBucket: "twingostudio-cc351.firebasestorage.app",
-  messagingSenderId: "236093689838",
-  appId: "1:236093689838:web:b502546fdf61b1cc6288ff"
+  apiKey:"AIzaSyCv_YX6Q5ZCO-KalyFZ4qh2RJMGxULrlas",
+  authDomain:"twingostudio-cc351.firebaseapp.com",
+  projectId:"twingostudio-cc351",
+  storageBucket:"twingostudio-cc351.firebasestorage.app",
+  messagingSenderId:"236093689838",
+  appId:"1:236093689838:web:b502546fdf61b1cc6288ff"
 });
 const auth = getAuth(app);
 onAuthStateChanged(auth, user => {
@@ -174,18 +155,89 @@ onAuthStateChanged(auth, user => {
 
 <script>
 const FUNCTION_URL = 'https://twingostudio.netlify.app/.netlify/functions/etsy-auth';
-let currentType = 'family';
-let currentImage = null; // { base64, mimeType, preview }
 
-// Tür seçimi
-window.setType = (type) => {
-  currentType = type;
-  document.getElementById('btn-family').classList.toggle('active', type === 'family');
-  document.getElementById('btn-custom').classList.toggle('active', type === 'custom');
+const SYSTEM_PROMPT = `You are an expert Etsy SEO copywriter specializing in POD (Print On Demand) apparel.
+
+Your only task is to generate high-converting Etsy title and tag datasets from a shirt design image and a bestseller reference.
+
+GENERAL OBJECTIVE
+Generate SEO datasets that imitate the search behavior of successful Etsy listings rather than simply describing the artwork.
+The goal is NOT creativity. The goal is maximizing Etsy search visibility.
+Always prioritize keywords that buyers actually search.
+
+STEP 1 — DETERMINE PRODUCT TYPE (from user input)
+A. Custom: Personalized birthday shirt, Custom name shirt, Custom grade shirt, Custom family matching birthday shirt
+B. Non-custom: Teacher shirt, Funny shirt, Autism awareness, Gardening, Golf, Beach, Summer, etc.
+
+STEP 2 — IF CUSTOM
+Never optimize around the artwork itself. Optimize around personalization.
+For birthday shirts ALWAYS include "Family Matching Shirt" or "Family Matching Birthday Shirt" in titles. This is MANDATORY.
+Prioritize: Custom Birthday Shirt, Personalized Birthday Shirt, Custom Name, Custom Age, Birthday Boy/Girl, Family Matching Shirts, Birthday Outfit, Birthday Party, Kids Birthday, First Birthday, Birthday Gift
+
+STEP 3 — IF NON-CUSTOM
+Ignore personalization. Analyze the niche. Use the bestseller title as SEO blueprint.
+Example: Input "Teaching Is My Jam" → Output titles around Teacher Shirt, Strawberry Teacher, Teacher Gift, Back To School
+
+STEP 4 — TITLE STRUCTURE
+Generate EXACTLY 4 datasets. Each: 1 Title + 13 Tags.
+
+TITLE RULES:
+- 120–140 characters whenever possible
+- Use | between keyword groups
+- Never keyword stuff
+- Every title targets slightly different long-tail searches
+- NO numbering, NO bullets, NO labels like "Dataset 1"
+
+TAG RULES:
+- EXACTLY 13 tags
+- Separated by commas only
+- No bullets, no numbering, no quotes
+- Every tag MUST be 20 characters or fewer — NEVER exceed 20 chars
+- Prioritize high-volume search phrases
+- Diversify — avoid repeating same words
+
+SEO PRIORITY ORDER:
+1. Exact buyer intent (Custom Birthday Shirt)
+2. High-volume niche (Teacher Shirt)
+3. Occasion (Back To School)
+4. Recipient (Teacher Gift)
+5. Style (Coquette)
+6. Artwork (Strawberry) — LOWEST priority
+
+OUTPUT FORMAT — EXACTLY like this, nothing else:
+[Title 1]
+[tag1,tag2,tag3,...,tag13]
+
+[Title 2]
+[tag1,tag2,...,tag13]
+
+[Title 3]
+[tag1,tag2,...,tag13]
+
+[Title 4]
+[tag1,tag2,...,tag13]
+
+QUALITY CHECK before outputting:
+- Exactly 4 datasets
+- Every dataset: 1 title + 13 tags
+- Every tag ≤20 characters
+- Birthday customs: "Family Matching Shirts" in title
+- Custom: personalization over artwork
+- Non-custom: bestseller search intent
+- All 4 titles different
+- Tags diversified
+- Output is immediately copy-paste ready for Etsy`;
+
+let currentType = 'custom';
+let currentImage = null;
+
+window.setType = (t) => {
+  currentType = t;
+  document.getElementById('btn-custom').classList.toggle('active', t === 'custom');
+  document.getElementById('btn-noncustom').classList.toggle('active', t === 'noncustom');
 };
 
-// Görsel yükleme
-function handleImgFile(e) { if (e.target.files[0]) loadImg(e.target.files[0]); }
+function handleFile(e) { if (e.target.files[0]) loadImg(e.target.files[0]); }
 window.handleDrop = (e) => {
   e.preventDefault();
   document.getElementById('img-zone').classList.remove('drag');
@@ -197,13 +249,12 @@ function loadImg(file) {
   const reader = new FileReader();
   reader.onload = ev => {
     const dataUrl = ev.target.result;
-    currentImage = { base64: dataUrl.split(',')[1], mimeType: file.type, preview: dataUrl };
+    currentImage = { base64: dataUrl.split(',')[1], mimeType: file.type || 'image/jpeg', preview: dataUrl };
     const zone = document.getElementById('img-zone');
     zone.classList.add('has-img');
     zone.onclick = null;
-    zone.innerHTML = `
-      <img class="img-preview" src="${dataUrl}" alt="Tasarım">
-      <button class="img-change-btn" onclick="resetImg()">↺ Değiştir</button>`;
+    zone.ondragover = null;
+    zone.innerHTML = `<img class="img-preview" src="${dataUrl}"><br><button class="img-change-btn" onclick="resetImg()">↺ Görseli Değiştir</button>`;
   };
   reader.readAsDataURL(file);
 }
@@ -213,71 +264,40 @@ window.resetImg = () => {
   const zone = document.getElementById('img-zone');
   zone.classList.remove('has-img');
   zone.onclick = () => document.getElementById('img-inp').click();
-  zone.innerHTML = `
-    <div id="img-placeholder">
-      <div class="img-zone-icon">🖼️</div>
-      <div class="img-zone-text">Görseli buraya sürükle veya tıkla</div>
-      <div class="img-zone-sub">PNG, JPG — Tasarım görselin</div>
-    </div>`;
+  zone.ondragover = (e) => { e.preventDefault(); zone.classList.add('drag'); };
+  zone.innerHTML = `<div id="img-ph"><div style="font-size:32px;margin-bottom:8px;">🖼️</div><div style="font-size:13px;font-weight:600;color:var(--gray-700);">Görseli buraya sürükle veya tıkla</div><div style="font-size:11px;color:var(--gray-400);margin-top:4px;">PNG, JPG desteklenir</div></div>`;
 };
 
-// Ana üretim fonksiyonu
 window.generate = async () => {
   if (!currentImage) { showToast('❌ Önce bir tasarım görseli yükle'); return; }
 
-  const existingTitle = document.getElementById('inp-title').value.trim();
-  const existingTags = document.getElementById('inp-tags').value.trim();
-  const typeLabel = currentType === 'family' ? 'Family (aile temalı)' : 'Custom (kişiselleştirilebilir)';
+  const ref = document.getElementById('inp-ref').value.trim();
+  const typeLabel = currentType === 'custom' ? 'CUSTOM (personalized product)' : 'NON-CUSTOM (ready design)';
+
+  const userPrompt = `Design type: ${typeLabel}
+${ref ? `Bestseller reference: "${ref}"` : 'No bestseller reference provided.'}
+
+Please analyze the shirt design image and generate exactly 4 SEO datasets following all the rules.`;
 
   document.getElementById('gen-btn').disabled = true;
   document.getElementById('loading-card').style.display = 'block';
   document.getElementById('results-wrap').innerHTML = '';
-
-  const prompt = `Sen bir Etsy SEO uzmanısın. Bu tasarım görselini analiz et ve 4 farklı SEO optimizasyonlu title & tag seti oluştur.
-
-Tasarım Türü: ${typeLabel}
-${existingTitle ? `Mevcut Title: "${existingTitle}"` : 'Mevcut title yok — görselden kendin üret'}
-${existingTags ? `Mevcut Tags: ${existingTags}` : 'Mevcut taglar yok — görselden kendin üret'}
-
-Görseli dikkatlice incele: ürünün ne olduğunu, üzerindeki yazı/grafik/temayı anla.
-
-Kurallar:
-- Her title max 140 karakter
-- Her set tam 13 tag
-- Her tag max 20 karakter
-- Sadece İngilizce
-- Set 1: Orijinal (varsa mevcut title/tag baz alınarak, yoksa görselden üret)
-- Set 2: Genel SEO — geniş kitle
-- Set 3: Gift/hediye odaklı
-- Set 4: Niş, uzun kuyruklu spesifik kelimeler
-
-SADECE bu JSON formatında yanıt ver, başka hiçbir şey yazma:
-{
-  "sets": [
-    {"title":"...","tags":["t1","t2","t3","t4","t5","t6","t7","t8","t9","t10","t11","t12","t13"],"focus":"Set açıklaması (Türkçe)"},
-    {"title":"...","tags":[...],"focus":"..."},
-    {"title":"...","tags":[...],"focus":"..."},
-    {"title":"...","tags":[...],"focus":"..."}
-  ]
-}`;
 
   try {
     const res = await fetch(FUNCTION_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: 'gemini',
-        prompt,
+        action: 'claude-vision',
+        systemPrompt: SYSTEM_PROMPT,
+        prompt: userPrompt,
         imageBase64: currentImage.base64,
         imageMimeType: currentImage.mimeType
       })
     });
     const data = await res.json();
     if (data.error) throw new Error(data.error);
-
-    const clean = data.content.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
-    renderResults(parsed.sets);
+    parseAndRender(data.content);
   } catch(e) {
     showToast('❌ ' + e.message);
     console.error(e);
@@ -287,62 +307,87 @@ SADECE bu JSON formatında yanıt ver, başka hiçbir şey yazma:
   document.getElementById('loading-card').style.display = 'none';
 };
 
-function renderResults(sets) {
+function parseAndRender(text) {
+  // Her boş satırla ayrılmış blokları bul
+  const blocks = text.trim().split(/\n\s*\n/).filter(b => b.trim());
+  const sets = [];
+
+  for (const block of blocks) {
+    const lines = block.trim().split('\n').filter(l => l.trim());
+    if (lines.length >= 2) {
+      const title = lines[0].trim();
+      const tagsLine = lines[1].trim();
+      const tags = tagsLine.split(',').map(t => t.trim()).filter(Boolean);
+      if (title && tags.length > 0) sets.push({ title, tags });
+    }
+  }
+
+  if (!sets.length) {
+    showToast('❌ Sonuç parse edilemedi');
+    document.getElementById('results-wrap').innerHTML = `<div class="card"><pre style="font-size:11px;white-space:pre-wrap;color:var(--gray-700);">${text}</pre></div>`;
+    return;
+  }
+
   const wrap = document.getElementById('results-wrap');
   wrap.innerHTML = sets.map((set, i) => {
     const len = set.title.length;
-    const lenColor = len > 130 ? '#d97706' : len > 100 ? '#16a34a' : '#a8a8a4';
-    const titleEsc = set.title.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
-    const tagsStr = set.tags.join(', ');
-    const tagsEsc = tagsStr.replace(/\\/g, '\\\\').replace(/`/g, '\\`');
+    const lenColor = len > 140 ? '#dc2626' : len > 130 ? '#d97706' : len >= 120 ? '#16a34a' : '#a8a8a4';
+    const longTags = set.tags.filter(t => t.length > 20);
+    const tagsId = 'tags-' + i;
+    const titleId = 'title-' + i;
     return `
     <div class="set-card">
       <div class="set-header">
-        <div class="set-num ${i===0?'original':''}">
-          ${i===0 ? '✦ Set 1 — Orijinal' : 'Set ' + (i+1)}
-        </div>
-        <div class="set-focus">${set.focus}</div>
+        <div class="set-label">Set ${i + 1}</div>
+        <div style="font-size:10px;color:var(--gray-400);">${set.tags.length}/13 tag${longTags.length ? ' · ⚠️ ' + longTags.length + ' tag >20 karakter' : ''}</div>
       </div>
       <div class="set-body">
         <div>
-          <div class="field-label">
-            Title
-            <span style="color:${lenColor}">${len}/140</span>
-          </div>
-          <div class="title-box">${set.title}</div>
+          <div class="field-lbl">Title <span style="color:${lenColor}">${len}/140</span></div>
+          <div class="title-box" id="${titleId}">${set.title}</div>
         </div>
         <div>
-          <div class="field-label">
-            Tags
-            <span style="color:${set.tags.length===13?'#16a34a':'#d97706'}">${set.tags.length}/13</span>
-          </div>
-          <div class="tags-wrap">${set.tags.map(t=>`<div class="tag-chip">${t}</div>`).join('')}</div>
+          <div class="field-lbl">Tags</div>
+          <div class="tags-wrap" id="${tagsId}">${set.tags.map(t => `<div class="tag-chip" style="${t.length > 20 ? 'border-color:#fca5a5;color:#dc2626;' : ''}">${t}</div>`).join('')}</div>
         </div>
         <div class="copy-row">
-          <button class="copy-btn" onclick="copyText(this,\`${titleEsc}\`)">📋 Title</button>
-          <button class="copy-btn" onclick="copyText(this,\`${tagsEsc}\`)">📋 Tags</button>
-          <button class="copy-all-btn" onclick="copyAll(this,\`${titleEsc}\`,\`${tagsEsc}\`)">📋 Tümünü Kopyala</button>
+          <button class="copy-btn" onclick="copyEl('${titleId}', this)">📋 Title</button>
+          <button class="copy-btn" onclick="copyTags(${i}, this)">📋 Tags</button>
+          <button class="copy-all-btn" onclick="copySetAll(${i}, this)">📋 Tümünü Kopyala</button>
         </div>
       </div>
     </div>`;
   }).join('');
+  window._sets = sets;
 }
 
-window.copyText = async (btn, text) => {
+window.copyEl = async (id, btn) => {
+  const text = document.getElementById(id).textContent;
   await navigator.clipboard.writeText(text);
-  const orig = btn.innerHTML;
-  btn.classList.add('copied'); btn.textContent = '✅ Kopyalandı';
-  setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 2000);
-  showToast('✅ Kopyalandı');
+  flash(btn);
 };
 
-window.copyAll = async (btn, title, tags) => {
-  await navigator.clipboard.writeText(`TITLE:\n${title}\n\nTAGS:\n${tags}`);
+window.copyTags = async (i, btn) => {
+  const tags = window._sets[i].tags.join(', ');
+  await navigator.clipboard.writeText(tags);
+  flash(btn);
+};
+
+window.copySetAll = async (i, btn) => {
+  const s = window._sets[i];
+  await navigator.clipboard.writeText(`TITLE:\n${s.title}\n\nTAGS:\n${s.tags.join(', ')}`);
   const orig = btn.textContent;
   btn.textContent = '✅ Kopyalandı';
   setTimeout(() => btn.textContent = orig, 2000);
   showToast('✅ Tümü kopyalandı');
 };
+
+function flash(btn) {
+  const orig = btn.innerHTML;
+  btn.classList.add('copied'); btn.textContent = '✅';
+  setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = orig; }, 2000);
+  showToast('✅ Kopyalandı');
+}
 
 function showToast(msg) {
   const t = document.getElementById('toast');
