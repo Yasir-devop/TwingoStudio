@@ -227,5 +227,33 @@ exports.handler = async (event) => {
     }
   }
 
+  // ── GEMINI PROXY ─────────────────────────────────────
+  if (params.action === 'gemini' || body.action === 'gemini') {
+    const GEMINI_KEY = 'AQ.Ab8RN6LAI4t1JtBzE4FgIzYbkRPvqMbTTp8dNQBCqLqDavOJvg';
+    const { prompt, imageBase64, imageMimeType } = body;
+    try {
+      const parts = [];
+      if (imageBase64) {
+        parts.push({ inline_data: { mime_type: imageMimeType || 'image/jpeg', data: imageBase64 } });
+      }
+      parts.push({ text: prompt });
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ contents: [{ parts }] })
+        }
+      );
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      return { statusCode: 200, headers, body: JSON.stringify({ content: text }) };
+    } catch(e) {
+      return { statusCode: 500, headers, body: JSON.stringify({ error: e.message }) };
+    }
+  }
+
   return { statusCode: 400, headers, body: JSON.stringify({ error: 'Unknown action' }) };
 };
