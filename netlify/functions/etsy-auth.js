@@ -229,7 +229,7 @@ exports.handler = async (event) => {
 
   // ── GEMINI PROXY ─────────────────────────────────────
   if (params.action === 'gemini' || body.action === 'gemini') {
-    const GEMINI_KEY = 'AQ.Ab8RN6LAI4t1JtBzE4FgIzYbkRPvqMbTTp8dNQBCqLqDavOJvg';
+    const GEMINI_KEY = process.env.GEMINI_API_KEY || '';
     const { prompt, imageBase64, imageMimeType } = body;
     try {
       const parts = [];
