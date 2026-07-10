@@ -320,7 +320,7 @@ window.logout = () => signOut(auth).then(() => window.location.href = 'login.htm
   <div class="hero-tag">✦ Twingo Design Tools</div>
 
   <h1>Twingo Design<br><span>Online Editör</span></h1>
-  <p>Tüm tasarım araçlarına tek bir panelden ulaş. Hızlı, lokal, internet gerektirmez.</p>
+  <p>Etsy mağazanı yönet, ekibinle iş birliği yap, tasarımlarını SEO'ya hazırla — hepsi tek platformda.</p>
 
   <div class="grid" id="card-grid">
     <div class="skeleton-card"><div class="skeleton sk-badge"></div><div class="skeleton sk-icon"></div><div class="skeleton sk-title"></div><div class="skeleton sk-text1"></div><div class="skeleton sk-text2"></div><div class="sk-tags"><div class="skeleton sk-tag"></div><div class="skeleton sk-tag"></div></div><div class="skeleton sk-cta"></div></div>
@@ -352,7 +352,7 @@ const cards = [
     {
       cls: 'active', href: 'twingoFeed.html',
       badge: 'Aktif', icon: '🎨',
-      title: 'Tasarım Feed',
+      title: 'Design Feed',
       desc: 'Tasarımlarını ekiple paylaş, beğeni ve yorum al. Paylaşımlar 24 saat sonra otomatik silinir.',
       tags: ['Görsel Paylaş','Beğeni','Yorum','24s Otomatik Sil'],
       cta: 'Uygulamayı Aç'
@@ -437,14 +437,8 @@ let stores = JSON.parse(localStorage.getItem('twingo_stores') || '[]');
 
 function saveStores() { localStorage.setItem('twingo_stores', JSON.stringify(stores)); }
 
-function openStores() {
-  renderStoreList();
-  document.getElementById('stores-modal').style.display = 'flex';
-  setTimeout(() => document.getElementById('store-name-inp').focus(), 100);
-}
-function closeStores() {
-  document.getElementById('stores-modal').style.display = 'none';
-}
+function openStores() {}
+function closeStores() {}
 
 function addStore() {
   const name = document.getElementById('store-name-inp').value.trim();
@@ -487,7 +481,7 @@ function renderStoreList() {
 }
 
 function updateStoreBadge() {
-  const badge = document.getElementById('store-count-badge');
+  const badge = document.getElementById('store-count-badge'); if (!badge) return;
   if (stores.length > 0) {
     badge.textContent = stores.length;
     badge.style.display = 'inline';
