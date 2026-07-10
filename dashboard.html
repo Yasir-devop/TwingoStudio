@@ -621,11 +621,11 @@ function processData(receipts, listings) {
   const totalOrders = filtered.length;
   const dailyAvg = (totalOrders / period).toFixed(1);
 
-  const revenue = filtered.reduce((s, r) => s + parseFloat(r.grandtotal?.amount || r.total_price || 0), 0);
+  const revenue = filtered.reduce((s, r) => s + (parseFloat(r.grandtotal?.amount || r.total_price || 0) / 100), 0);
 
   document.getElementById('stat-revenue').textContent = totalOrders + ' adet';
   document.getElementById('stat-revenue-sub').textContent = period === 7 ? 'bugün' : 'aylık toplam';
-  document.getElementById('stat-orders').textContent = '$' + revenue.toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0});
+  document.getElementById('stat-orders').textContent = revenue.toLocaleString('en-US', {style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2});
   document.getElementById('stat-orders-sub').textContent = period === 7 ? 'bugün' : 'aylık';
   document.getElementById('stat-avg').textContent = dailyAvg;
   document.getElementById('stat-avg-sub').textContent = 'sipariş / gün';
@@ -653,7 +653,7 @@ function buildRevenueChart(orders) {
         const t = o.created_timestamp * 1000;
         return t >= dayStart.getTime() && t <= dayEnd.getTime();
       })
-      .reduce((s, o) => s + parseFloat(o.grandtotal?.amount || o.total_price || 0), 0);
+      .reduce((s, o) => s + (parseFloat(o.grandtotal?.amount || o.total_price || 0) / 100), 0);
     days.push(label); revenues.push(dayRevenue);
   }
 
