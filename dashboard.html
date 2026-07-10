@@ -62,7 +62,7 @@ header { height: 52px; background: var(--white); border-bottom: 1px solid var(--
 .period-btn.active { background: var(--gray-900); color: #fff; border-color: var(--gray-900); }
 
 /* Stats grid */
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
 @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
 .stat-card { background: var(--white); border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); }
 .stat-label { font-size: 11px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
@@ -172,7 +172,7 @@ tr:hover td { background: var(--gray-50); }
       <button id="add-store-btn" onclick="connectEtsy()" style="display:none;align-items:center;gap:5px;padding:7px 12px;border-radius:20px;border:1px dashed var(--accent);background:var(--accent-light);color:var(--accent);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">+ Mağaza Ekle</button>
       <button onclick="openManageStores()" style="padding:7px 12px;border-radius:20px;border:1px solid var(--gray-200);background:var(--white);color:var(--gray-500);font-family:inherit;font-size:11px;cursor:pointer;">⚙️ Yönet</button>
       <div class="period-btns">
-        <button class="period-btn active" onclick="setPeriod(7, this)">Today</button>
+        <button class="period-btn active" onclick="setPeriod(1, this)">Today</button>
         <button class="period-btn" onclick="setPeriod(30, this)">Aylık</button>
       </div>
     </div>
@@ -180,7 +180,7 @@ tr:hover td { background: var(--gray-50); }
     <!-- Stats -->
     <div class="stats-grid" id="stats-grid">
       <div class="stat-card"><div class="stat-label">Toplam Sipariş</div><div class="stat-value" id="stat-revenue">-</div><div class="stat-sub" id="stat-revenue-sub"></div></div>
-      <div class="stat-card"><div class="stat-label">Toplam Gelir</div><div class="stat-value" id="stat-orders">-</div><div class="stat-sub" id="stat-orders-sub"></div></div>
+
       <div class="stat-card"><div class="stat-label">Günlük Ort. Sipariş</div><div class="stat-value" id="stat-avg">-</div><div class="stat-sub" id="stat-avg-sub"></div></div>
       <div class="stat-card"><div class="stat-label">Aktif Listing</div><div class="stat-value" id="stat-listings">-</div><div class="stat-sub"></div></div>
     </div>
@@ -257,7 +257,7 @@ let currentUser = null;
 let etsyToken = null;
 let etsyStores = []; // Tüm bağlı mağazalar
 let currentShopId = null;
-let period = 7;
+let period = 1; // 1=today, 30=monthly
 let revenueChart = null;
 
 // ── AUTH ───────────────────────────────────────────────
@@ -601,8 +601,17 @@ window.loadDashboard = async () => {
   const shopId = currentShopId || document.getElementById('store-select').value;
   if (!shopId) return;
   try {
+    // Tarih filtresi için since hesapla
+    let minCreated;
+    if (period === 1) {
+      const d = new Date(); d.setUTCHours(0,0,0,0);
+      minCreated = Math.floor(d.getTime() / 1000);
+    } else {
+      const d = new Date(); d.setUTCDate(1); d.setUTCHours(0,0,0,0);
+      minCreated = Math.floor(d.getTime() / 1000);
+    }
     const [receipts, listings] = await Promise.all([
-      etsyAPI(`application/shops/${shopId}/receipts?limit=100&was_paid=true&sort_on=created&sort_order=desc`),
+      etsyAPI(`application/shops/${shopId}/receipts?limit=100&was_paid=true&min_created=${minCreated}&sort_on=created&sort_order=desc`),
       etsyAPI(`application/shops/${shopId}/listings/active?limit=25&sort_on=created&sort_order=desc`)
     ]);
     processData(receipts, listings);
@@ -614,7 +623,19 @@ window.loadDashboard = async () => {
 
 function processData(receipts, listings) {
   const now = Date.now() / 1000;
-  const since = now - (period * 86400);
+  // Tarih filtresi: Today=bugünün başlangıcı, Aylık=bu ayın 1i
+  let since;
+  if (period === 1) {
+    // Bugünün UTC başlangıcı
+    const d = new Date();
+    d.setUTCHours(0,0,0,0);
+    since = Math.floor(d.getTime() / 1000);
+  } else {
+    // Bu ayın 1i UTC
+    const d = new Date();
+    d.setUTCDate(1); d.setUTCHours(0,0,0,0);
+    since = Math.floor(d.getTime() / 1000);
+  }
   const filtered = (receipts.results || []).filter(r => r.created_timestamp >= since);
 
   // Stats
@@ -624,11 +645,11 @@ function processData(receipts, listings) {
   const revenue = filtered.reduce((s, r) => s + (parseFloat(r.grandtotal?.amount || r.total_price || 0) / 100), 0);
 
   document.getElementById('stat-revenue').textContent = totalOrders + ' adet';
-  document.getElementById('stat-revenue-sub').textContent = period === 7 ? 'bugün' : 'aylık toplam';
-  document.getElementById('stat-orders').textContent = revenue.toLocaleString('en-US', {style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('stat-orders-sub').textContent = period === 7 ? 'bugün' : 'aylık';
+  document.getElementById('stat-revenue-sub').textContent = period === 1 ? 'bugün' : 'bu ay';
+  // stat-orders kaldırıldı // = revenue.toLocaleString('en-US', {style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2});
+  document.getElementById('stat-orders-sub').textContent = period === 1 ? 'bugün' : 'bu ay';
   document.getElementById('stat-avg').textContent = dailyAvg;
-  document.getElementById('stat-avg-sub').textContent = 'sipariş / gün';
+  document.getElementById('stat-avg-sub').textContent = period === 1 ? 'bugün' : 'sipariş / gün';
   document.getElementById('stat-listings').textContent = listings.count || (listings.results?.length || 0);
 
   // Günlük revenue chart
