@@ -646,8 +646,6 @@ function processData(receipts, listings) {
 
   document.getElementById('stat-revenue').textContent = totalOrders + ' adet';
   document.getElementById('stat-revenue-sub').textContent = period === 1 ? 'bugün' : 'bu ay';
-  // stat-orders kaldırıldı // = revenue.toLocaleString('en-US', {style:'currency', currency:'USD', minimumFractionDigits:2, maximumFractionDigits:2});
-  document.getElementById('stat-orders-sub').textContent = period === 1 ? 'bugün' : 'bu ay';
   document.getElementById('stat-avg').textContent = dailyAvg;
   document.getElementById('stat-avg-sub').textContent = period === 1 ? 'bugün' : 'sipariş / gün';
   document.getElementById('stat-listings').textContent = listings.count || (listings.results?.length || 0);
